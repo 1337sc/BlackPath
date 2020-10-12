@@ -16,6 +16,9 @@
 # Mono auto generated files
 mono_crash.*
 
+#A file with a token for the bot
+Program.cs
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
