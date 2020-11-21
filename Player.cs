@@ -210,7 +210,7 @@ namespace tgBot
             points = Field.Length / points;
             points += Money * 100;
             points += HP * 1000;
-            await GameInterfaceProcessor.CheckAndSendAsync(Id, $"You have collected {points} point(s)!" +
+            await GameInterfaceProcessor.CheckAndSendAsync(Id, $"You have collected {points:%.2d} point(s)!" +
                 $" Type /game to start a new game.");
         }
 

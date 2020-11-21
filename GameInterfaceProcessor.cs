@@ -215,7 +215,6 @@ namespace tgBot
                         GameDataProcessor.UpdatePlayerTimestamp(curPlayer);
                         AskForAction(chatId);
                         break;
-                    //the user's orders:
                     case MarkerUp:
                         curPlayer.Move(0, -1);
                         break;

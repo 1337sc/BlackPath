@@ -60,10 +60,17 @@ namespace tgBot
         private async Task SerializeArray(FileStream fs, PropertyInfo prop)
         {
             Array currentArrProp = (Array)prop.GetValue(this);
+            if (currentArrProp == null)
+            {
+                currentArrProp = (Array)Activator.CreateInstance(
+                    prop.PropertyType.MakeArrayType(prop.PropertyType.GetArrayRank()));
+            }
+
             await GameDataProcessor.SerializeValueOfType(currentArrProp.Rank.GetType(),
                 fs, currentArrProp.Rank); //serialize array dimensity
             await GameDataProcessor.SerializeValueOfType(currentArrProp.GetLength(0).GetType(),
                 fs, currentArrProp.GetLength(0)); //serialize array length 
+
             foreach (var item in currentArrProp)
             {
                 await ((Serializable)item)?.SerializeTo(fs);
@@ -76,12 +83,15 @@ namespace tgBot
 
             int currentArrPropRank = (int)await GameDataProcessor.DeserializeValueOfType(typeof(int), fs);
             int currentArrPropLength = (int)await GameDataProcessor.DeserializeValueOfType(typeof(int), fs);
+
             int[] arrayModel = new int[currentArrPropRank]; //save array lengths using serialized rank
             for (int i = 0; i < currentArrPropRank; i++)
             {
                 arrayModel[i] = currentArrPropLength;
             }
+
             prop.SetValue(this, Array.CreateInstance(arrElementType, arrayModel));
+
             for (int i = 0; i < currentArrPropLength; i++)
             {
                 for (int j = 0; j < currentArrPropLength; j++)

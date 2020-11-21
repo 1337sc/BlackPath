@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace tgBot
 {
-    static class GameDataProcessor
+    public static class GameDataProcessor
     {
         private const int DelayMinutes = 100;
         private const string DataFileExtension = ".bpdf";
@@ -57,7 +57,6 @@ namespace tgBot
         /// <param name="player">The player to be serialized</param>
         private static async Task SerializePlayer(Player player)
         {
-            Type playerType = player.GetType();
             try
             {
                 CheckCreateDataFolder();
