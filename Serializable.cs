@@ -8,8 +8,8 @@ namespace tgBot
 {
     public abstract class Serializable
     {
-        protected virtual void OnSerialized() { }
-        protected virtual void OnDeserialized() { }
+        protected abstract void OnSerialized();
+        protected abstract void OnDeserialized();
         public async Task SerializeTo(FileStream fs)
         {
             foreach (var prop in from prop in GetType().GetProperties()
@@ -53,8 +53,8 @@ namespace tgBot
 
         private bool CheckAttributes(PropertyInfo prop)
         {
-            var serializedAttrs = prop.GetCustomAttributes(typeof(SerializedAttribute), false);
-            return serializedAttrs.Length > 0;
+            var serializedAttrs = prop.GetCustomAttributes(typeof(DoNotSerializeAttribute), false);
+            return serializedAttrs.Length == 0;
         }
 
         private async Task SerializeArray(FileStream fs, PropertyInfo prop)
@@ -62,8 +62,7 @@ namespace tgBot
             Array currentArrProp = (Array)prop.GetValue(this);
             if (currentArrProp == null)
             {
-                currentArrProp = (Array)Activator.CreateInstance(
-                    prop.PropertyType.MakeArrayType(prop.PropertyType.GetArrayRank()));
+                currentArrProp = (Array)Activator.CreateInstance(prop.PropertyType);
             }
 
             await GameDataProcessor.SerializeValueOfType(currentArrProp.Rank.GetType(),

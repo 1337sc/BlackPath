@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Threading.Tasks;
+using tgBot.Cells;
 
 namespace tgBot
 {
@@ -13,33 +15,36 @@ namespace tgBot
 
     public class Player : Serializable
     {
+        [DoNotSerialize]
         public long Id { get; set; }
-        [Serialized]
+
         public Cell[,] Field { get; set; }
-        [Serialized]
+        
         public Cell.Figures Figure { get; set; }
-        [Serialized]
+        
         public int X { get; set; }
-        [Serialized]
+        
         public int Y { get; set; }
-        [Serialized]
+        
         public int Money { get; set; }
-        [Serialized]
+        
         public int Points { get; set; }
-        [Serialized]
+        
         public int HP { get; set; }
-        [Serialized]
+        
         public int GlanceCount { get; set; }
-        [Serialized]
+        
         public bool AskedDirection { get; set; }
-        [Serialized]
+        
         public bool AskedNeighbourhood { get; set; }
+
         public readonly int glanceCountMax = 2; //TODO: varying glances count depending on the game's difficulty
         public PlayerModes Mode = PlayerModes.Move;
         private const int emptyCellChance = 60; //a chance for the cell with type "Empty" to be put
                                                 //on the field
-
+        [DoNotSerialize]
         public DateTime TimeStamp { get; set; } //to delete inactive users
+        [DoNotSerialize]
         public List<Cell> CellsList { get; set; } //list of a player's cells (mod support)
         private readonly Cell playerCell;
         //TODO: Items, Effects and their lists
@@ -199,7 +204,7 @@ namespace tgBot
             return HashCode.Combine(Id);
         }
 
-        internal async void EndGame()
+        internal void EndGame()
         {
             var points = 0d;
             foreach (var c in Field)
@@ -210,8 +215,9 @@ namespace tgBot
             points = Field.Length / points;
             points += Money * 100;
             points += HP * 1000;
-            await GameInterfaceProcessor.CheckAndSendAsync(Id, $"You have collected {points:%.2d} point(s)!" +
-                $" Type /game to start a new game.");
+            GameDataProcessor.RemoveActivePlayer(Id);
+            Task.Run(() => GameInterfaceProcessor.CheckAndSendAsync(Id, $"You have collected {points:.2} point(s)!" +
+                $" Type /game to start a new game.")).Wait();
         }
 
         internal bool CheckHonesty()
@@ -222,9 +228,9 @@ namespace tgBot
             return rnd.Next(0, 1) % 2 == 0;
         }
         /// <summary>
-        /// Finds the position of the first occured Exit and returns its position in a Tuple<X, Y>
+        /// Finds the position of the first occured Exit
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Exit position in a Tuple<X, Y></returns>
         internal (int X, int Y) FindExitPosition()
         {
             for (int i = 0; i < Field.GetLength(0); i++)
@@ -236,5 +242,9 @@ namespace tgBot
             }
             return (-1, -1);
         }
+
+        protected override void OnSerialized() { }
+
+        protected override void OnDeserialized() { }
     }
 }
