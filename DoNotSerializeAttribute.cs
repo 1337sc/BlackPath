@@ -1,11 +1,10 @@
 ﻿using System;
-using System.IO;
 
 namespace tgBot
 {
     [AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
-    public sealed class SerializedAttribute : Attribute
+    public sealed class DoNotSerializeAttribute : Attribute
     {
-        public SerializedAttribute() { }
+        public DoNotSerializeAttribute() { }
     }
 }

@@ -3,29 +3,18 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
-using System.IO;
 using System.Threading.Tasks;
 
-namespace tgBot
+namespace tgBot.Cells
 {
-    public class Cell : Serializable
+    public abstract partial class Cell : Serializable
     {
         private const int minRndColor = 100;
         private const int maxRndColor = 200;
         public const int CellSize = 40;
         public const int BorderSize = 2;
         public const string FogCellColor = "EFEFEF"; //the color for the cells the player hasn't seen
-        public enum CellTypes
-        {
-            ErrType,
-            Empty,
-            GlanceTrap,
-            EnterTrap,
-            Char,
-            Player,
-            Darkness,
-            Exit
-        }
+
         public static readonly Dictionary<string, CellTypes> CellTypesDict =
             new Dictionary<string, CellTypes>()
             {
@@ -37,13 +26,7 @@ namespace tgBot
                 ["darkness"] = CellTypes.Darkness,
                 ["exit"] = CellTypes.Exit
             };
-        public enum Figures
-        {
-            None,
-            Triangle,
-            Circle,
-            Square,
-        }
+
         public static readonly Dictionary<string, Figures> FiguresDict =
             new Dictionary<string, Figures>()
             {
@@ -52,31 +35,98 @@ namespace tgBot
                 ["circle"] = Figures.Circle,
                 ["triangle"] = Figures.Triangle
             };
-        [Serialized]
+
         public string Name { get; set; } //any unique
-        [Serialized]
+
         public CellTypes Type { get; set; } //empty, glance_trap, enter_trap, char, player, darkness, exit
-        [Serialized]
+
         public string Colour { get; set; } //background color, like "123abc"
-        [Serialized]
+
         public Figures Figure { get; set; } //triangle, circle, square, none
-        [Serialized]
+
         public string FigureColour { get; set; } //like "123abc" or "random"
-        [Serialized]
+
         public bool Fill { get; set; } //true, false
-        [Serialized]
+
         public bool HasDialogue { get; set; } //true, false
-        [Serialized]
+
         public string Effect { get; set; } //none, positive, negative, neutral, "name;Effect name from table" [;probability]
-        [Serialized]
+
         public string Desc { get; set; } //any
-        [Serialized]
+
         public bool Opened { get; set; } //has the cell been glanced onto or visited
-        public ActionHandlersPriorityController EnterActions { get; private set; } = new ActionHandlersPriorityController();
-        public ActionHandlersPriorityController GlanceActions { get; private set; } = new ActionHandlersPriorityController();
-        
-        public Cell()
+
+        protected Cell(string name, string colour,
+            Figures figure, string figureColour,
+            bool fill, bool hasDialogue,
+            string effect, string desc)
         {
+
+            Name = name;
+            Colour = colour;
+            Figure = figure;
+            FigureColour = figureColour;
+            Fill = fill;
+            HasDialogue = hasDialogue;
+            Effect = effect;
+            Desc = desc;
+        }
+
+        public static Cell CreateCell(CellTypes type, string name, string colour,
+            Figures figure, string figureColour,
+            bool fill, bool hasDialogue,
+            string effect, string desc)
+        {
+            switch (type)
+            {
+                case CellTypes.ErrType:
+                    Task.Run(() => Logger.Log("Could not get cell type - it's been set to Empty")).Wait();
+                    return new EmptyCell(name: name, colour: colour,
+                        figure: figure, figureColour: figureColour,
+                        fill: fill, hasDialogue: hasDialogue,
+                        effect: effect, desc: desc);
+                case CellTypes.Empty:
+                    return new EmptyCell(name: name, colour: colour,
+                        figure: figure, figureColour: figureColour,
+                        fill: fill, hasDialogue: hasDialogue,
+                        effect: effect, desc: desc);
+                case CellTypes.GlanceTrap:
+                    return new GlanceTrapCell(name: name, colour: colour,
+                        figure: figure, figureColour: figureColour,
+                        fill: fill, hasDialogue: hasDialogue,
+                        effect: effect, desc: desc);
+                case CellTypes.EnterTrap:
+                    return new EnterTrapCell(name: name, colour: colour,
+                        figure: figure, figureColour: figureColour,
+                        fill: fill, hasDialogue: hasDialogue,
+                        effect: effect, desc: desc);
+                case CellTypes.Char:
+                    return new CharCell(name: name, colour: colour,
+                        figure: figure, figureColour: figureColour,
+                        fill: fill, hasDialogue: hasDialogue,
+                        effect: effect, desc: desc);
+                case CellTypes.Player:
+                    return new PlayerCell(name: name, colour: colour,
+                        figure: figure, figureColour: figureColour,
+                        fill: fill, hasDialogue: hasDialogue,
+                        effect: effect, desc: desc);
+                case CellTypes.Darkness:
+                    return new DarknessCell(name: name, colour: colour,
+                        figure: figure, figureColour: figureColour,
+                        fill: fill, hasDialogue: hasDialogue,
+                        effect: effect, desc: desc);
+                case CellTypes.Exit:
+                    return new ExitCell(name: name, colour: colour,
+                        figure: figure, figureColour: figureColour,
+                        fill: fill, hasDialogue: hasDialogue,
+                        effect: effect, desc: desc);
+                default:
+                    Task.Run(() => Logger.Log("Unrecognizable cell type - it's been set to Empty")).Wait();
+                    return new EmptyCell(name: name, colour: colour,
+                        figure: figure, figureColour: figureColour,
+                        fill: fill, hasDialogue: hasDialogue,
+                        effect: effect, desc: desc);
+            }
         }
 
         public override string ToString()
@@ -94,9 +144,9 @@ namespace tgBot
         public Cell Clone()
         {
             var clone = MemberwiseClone();
-            if (clone is Cell)
+            if (clone is Cell cell)
             {
-                return (Cell)clone;
+                return cell;
             }
             return null;
         }
@@ -137,62 +187,14 @@ namespace tgBot
             }
             return res;
         }
-        public void SetCellActions()
-        {
-            EnterActions.AddHandler(GameInterfaceProcessor.AskForActionAdapter, 
-                int.MaxValue, nameof(GameInterfaceProcessor.AskForActionAdapter));
-            GlanceActions.AddHandler(GameInterfaceProcessor.AskForActionAdapter, 
-                int.MaxValue, nameof(GameInterfaceProcessor.AskForActionAdapter));
-            switch (Type)
-            {
-                case CellTypes.Empty:
-                    EnterActions.AddHandler(delegate (Player p)
-                    {
-                        p.Money++; 
-                    });
-                    break;
-                case CellTypes.GlanceTrap:
-                    EnterActions.AddHandler(delegate (Player p)
-                    {
-                        p.HP--;
-                    });
-                    break;
-                case CellTypes.EnterTrap:
-                    EnterActions.AddHandler(delegate (Player p)
-                    {
-                        p.HP--;
-                    });
-                    break;
-                case CellTypes.Char:
-                    EnterActions.AddHandler(delegate (Player p)
-                    {
-                        GameDataProcessor.AddPlayerInDialogue(p);
-                    });
-                    break;
-                case CellTypes.Exit:
-                    EnterActions.RemoveHandler(nameof(GameInterfaceProcessor.AskForActionAdapter));
-                    EnterActions.AddHandler(async delegate (Player p)
-                    {
-                        await GameInterfaceProcessor.CheckAndSendAsync(p.Id, "You've reached the exit!");
-                        p.EndGame();
-                    });
-                    break;
-                default:
-                    break;
-            }
-        }
 
-        internal void OnEnter(Player p)
+        internal virtual void OnEnter(Player p)
         {
-            EnterActions?.DoActions(p);
+            GameInterfaceProcessor.AskForActionAdapter(p);
         }
-        internal void OnGlance(Player p)
+        internal virtual void OnGlance(Player p)
         {
-            GlanceActions?.DoActions(p);
-        }
-        protected void Cell_OnDeserialized()
-        {
-            SetCellActions();
+            GameInterfaceProcessor.AskForActionAdapter(p);
         }
         private Color ConvertToColor(string hexFormat)
         {
@@ -205,9 +207,7 @@ namespace tgBot
             }
             return Color.FromArgb(int.Parse(hexFormat.Substring(0, 2), NumberStyles.HexNumber), int.Parse(hexFormat.Substring(2, 2), NumberStyles.HexNumber), int.Parse(hexFormat.Substring(4, 2), NumberStyles.HexNumber));
         }
-        protected override void OnDeserialized()
-        {
-            SetCellActions();
-        }
+        protected override void OnSerialized() { }
+        protected override void OnDeserialized() { }
     }
 }

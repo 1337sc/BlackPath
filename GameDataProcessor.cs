@@ -10,12 +10,13 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using tgBot.Cells;
 
 namespace tgBot
 {
     public static class GameDataProcessor
     {
-        private const int DelayMinutes = 100;
+        //private const int DelayMinutes = 100;
         private const string DataFileExtension = ".bpdf";
         private const string ResourceFileExtension = ".csv";
         private const string DataFileFolder = "./userdata/";
@@ -44,18 +45,19 @@ namespace tgBot
             // TODO: return exceptions instead of codes
             return res;
         }
-        public static async Task<bool> RemoveActivePlayer(long id)
+        public static void RemoveActivePlayer(long id)
         {
             var p = activePlayers.Find(p => p.Id == id);
-            await SerializePlayer(p);
-            activePlayers.Remove(p);
-            return true;
+            if (!activePlayers.Remove(p))
+            {
+                throw new ArgumentException("Player couldn't be removed");
+            }
         }
         /// <summary>
         /// External method for serializing a player.
         /// </summary>
         /// <param name="player">The player to be serialized</param>
-        private static async Task SerializePlayer(Player player)
+        public static async Task SerializePlayer(Player player)
         {
             try
             {
@@ -218,16 +220,12 @@ namespace tgBot
         /// Resets the player's field and other stats. Used if a player started a new game.
         /// </summary>
         /// <param name="id">The player's id</param>
-        public static async Task<bool> ResetPlayer(long id)
+        public static async Task ResetPlayer(long id)
         {
             Player p = new Player(id);
-            if (!await RemoveActivePlayer(id))
-            {
-                return false;
-            }
+            RemoveActivePlayer(id);
             await SerializePlayer(p);
             await AddActivePlayer(id);
-            return true;
         }
         public static void UpdatePlayerTimestamp(Player p)
         {
@@ -266,20 +264,16 @@ namespace tgBot
                     p.CellsList = new List<Cell>();
                     while (csvReader.Read())
                     {
-                        Cell newCell = new Cell()
-                        {
-                            Name = csvReader.GetField("Name"),
-                            Type = Cell.CellTypesDict.TryGetValue(csvReader.GetField("Type"), out Cell.CellTypes type) ? type : Cell.CellTypes.ErrType,
-                            Colour = csvReader.GetField("Colour"),
-                            Figure = Cell.FiguresDict.TryGetValue(csvReader.GetField("Figure"), out Cell.Figures fig) ? fig : Cell.Figures.None,
-                            FigureColour = csvReader.GetField("FigureColour"),
-                            Fill = csvReader.GetField<bool>("Fill"),
-                            HasDialogue = csvReader.GetField<bool>("Dialogue"),
-                            Effect = csvReader.GetField("Effect"),
-                            Desc = csvReader.GetField("Desc")
-                        };
-                        newCell.Opened = newCell.Type == Cell.CellTypes.Player ? true : false;
-                        newCell.SetCellActions();
+                        Cell newCell = Cell.CreateCell(type: Cell.CellTypesDict.TryGetValue(csvReader.GetField("Type"), out Cell.CellTypes type) ? type : Cell.CellTypes.ErrType,
+                            name: csvReader.GetField("Name"),
+                            colour: csvReader.GetField("Colour"),
+                            figure: Cell.FiguresDict.TryGetValue(csvReader.GetField("Figure"), out Cell.Figures fig) ? fig : Cell.Figures.None,
+                            figureColour: csvReader.GetField("FigureColour"),
+                            fill: csvReader.GetField<bool>("Fill"),
+                            hasDialogue: csvReader.GetField<bool>("Dialogue"),
+                            effect: csvReader.GetField("Effect"),
+                            desc: csvReader.GetField("Desc")
+                        );
                         if (newCell.Type != Cell.CellTypes.ErrType)
                             p.CellsList.Add(newCell);
                     }

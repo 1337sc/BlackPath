@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace tgBot
 {
+    [Obsolete]
     public class ActionHandlersPriorityController
     {
         public delegate void UsePlayer(Player p);

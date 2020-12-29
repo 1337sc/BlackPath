@@ -46,7 +46,6 @@ namespace tgBot
             ["game"] = "Start a new game or load the previous one (if first, the existing game will be abandoned)",
             ["stop"] = "Save and stop the existing game (won't work if no game is started)",
             ["settings"] = "Change the way the game behaves, set up modpacks etc.",
-            //["changeopen"] = "A cheat",
             ["pos"] = "Get your current position",
             ["map"] = "Get your map drawn again"
         };
@@ -307,7 +306,7 @@ namespace tgBot
                     curActivePlayer = GameDataProcessor.GetActivePlayer(chatId);
                     if (curActivePlayer != null)
                     {
-                        await SendCurrentField(curActivePlayer);
+                        await SendCurrentFieldPicture(curActivePlayer);
                     }
                     else
                     {
@@ -333,13 +332,15 @@ namespace tgBot
                             new ReplyKeyboardRemove());
                         break;
                     }
+
                     await CheckAndSendAsync(chatId, "Your session will be ended in few seconds...\n" +
                         "Don't type anything else!", new ReplyKeyboardRemove());
-                    if (await GameDataProcessor.RemoveActivePlayer(chatId))
-                    {
-                        await CheckAndSendAsync(chatId, "Your session has been over! Type " +
-                            "/game to start a game or load it.");
-                    }
+                    curActivePlayer = GameDataProcessor.GetActivePlayer(chatId);
+                    await GameDataProcessor.SerializePlayer(curActivePlayer);
+                    GameDataProcessor.RemoveActivePlayer(chatId);
+                    await CheckAndSendAsync(chatId, "Your session has been saved and ended! Type " +
+                        "/game to start a game or load it.");
+
                     break;
                 case "settings": //change the settings of the game, especially the modpacks
                     if (GameDataProcessor.GetActivePlayer(chatId) != null)
@@ -500,7 +501,7 @@ namespace tgBot
             {
                 List<KeyboardButton[]> buttons;
                 if (sendField)
-                    await SendCurrentField(curPlayer);
+                    await SendCurrentFieldPicture(curPlayer);
                 if (GameDataProcessor.GetPlayerInDialogue(chatId) == null) // if the player didn't start a conversation
                 {
                     buttons = new List<KeyboardButton[]>()
@@ -524,23 +525,20 @@ namespace tgBot
                 replyKeyboard);
             }
         }
+
         internal static void AskForActionAdapter(Player p)
         {
             AskForAction(p.Id);
         }
+
         public static async Task SendDefaultResources(long chatId)
         {
-            InputOnlineFile inputFile = null;
             using var fs = new FileStream("default-resources.zip", FileMode.Open);
-            inputFile = new InputOnlineFile(fs, "default-resources.zip");
+            InputOnlineFile inputFile = new InputOnlineFile(fs, "default-resources.zip");
             await CheckAndSendAsync(chatId, inputFile);
         }
-        /// <summary>
-        /// Sends the picture of the player's field
-        /// </summary>
-        /// <param name="p">The player whose field is to be sent</param>
-        /// <returns></returns>
-        public static async Task SendCurrentField(Player p)
+
+        public static async Task SendCurrentFieldPicture(Player p)
         {
             try
             {
