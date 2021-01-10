@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using tgBot.Game;
 
 namespace tgBot.Cells
 {
@@ -18,7 +19,7 @@ namespace tgBot.Cells
 
         internal override void OnEnter(Player p)
         {
-            GameDataProcessor.AddPlayerInDialogue(p);
+            GameCore.AddPlayerInDialogue(p);
             base.OnEnter(p);
         }
 

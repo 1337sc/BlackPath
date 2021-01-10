@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.IO;
 using System.Threading.Tasks;
 using tgBot.Cells;
+using tgBot.Game;
 
 namespace tgBot
 {
@@ -13,29 +13,29 @@ namespace tgBot
         Move
     }
 
-    public class Player : Serializable
+    public class Player : ISerializable
     {
         [DoNotSerialize]
         public long Id { get; set; }
 
         public Cell[,] Field { get; set; }
-        
+
         public Cell.Figures Figure { get; set; }
-        
+
         public int X { get; set; }
-        
+
         public int Y { get; set; }
-        
+
         public int Money { get; set; }
-        
+
         public int Points { get; set; }
-        
+
         public int HP { get; set; }
-        
+
         public int GlanceCount { get; set; }
-        
+
         public bool AskedDirection { get; set; }
-        
+
         public bool AskedNeighbourhood { get; set; }
 
         public readonly int glanceCountMax = 2; //TODO: varying glances count depending on the game's difficulty
@@ -64,7 +64,7 @@ namespace tgBot
             HP = 3;
             GlanceCount = glanceCountMax;
             TimeStamp = DateTime.Now;
-            GameDataProcessor.GetPlayerResources(this);
+            GameCore.GetPlayerResources(this);
             playerCell = CellsList.Find(x => x.Type == Cell.CellTypes.Player).Clone();
             playerCell.Opened = true;
         }
@@ -112,12 +112,12 @@ namespace tgBot
             if (newX < 0 || newX >= Field.GetLength(0) ||
                 newY < 0 || newY >= Field.GetLength(1))
             {
-                await GameInterfaceProcessor.CheckAndSendAsync(Id, "You see nothing but a wall towards you...\n");
+                await GameCore.CheckAndSendAsync(Id, "You see nothing but a wall towards you...\n");
                 return;
             }
             if (Field[newX, newY].Type == Cell.CellTypes.Darkness)
             {
-                await GameInterfaceProcessor.CheckAndSendAsync(Id, "The darkness blocks the way there!");
+                await GameCore.CheckAndSendAsync(Id, "The darkness blocks the way there!");
                 return;
             }
             if (Mode == PlayerModes.Move)
@@ -136,18 +136,18 @@ namespace tgBot
                     Field[newX, newY].Opened = true;
                     GlanceCount--;
                     Field[newX, newY].OnGlance(this);
-                    await GameInterfaceProcessor.CheckAndSendAsync(Id, $"I see {Field[newX, newY].Name}");
+                    await GameCore.CheckAndSendAsync(Id, $"I see {Field[newX, newY].Name}");
                 }
                 else
                 {
-                    await GameInterfaceProcessor.CheckAndSendAsync(Id,
+                    await GameCore.CheckAndSendAsync(Id,
                         $"I have to move, the Darkness is coming!");
                 }
             }
             if (HP == 0)
             {
-                await GameInterfaceProcessor.CheckAndSendAsync(Id, $"You have lost all your health and died! Type /game to start a new game!");
-                await GameDataProcessor.ResetPlayer(Id);
+                await GameCore.CheckAndSendAsync(Id, $"You have lost all your health and died! Type /game to start a new game!");
+                await GameCore.ResetPlayer(Id);
                 EndGame();
             }
         }
@@ -215,8 +215,8 @@ namespace tgBot
             points = Field.Length / points;
             points += Money * 100;
             points += HP * 1000;
-            GameDataProcessor.RemoveActivePlayer(Id);
-            Task.Run(() => GameInterfaceProcessor.CheckAndSendAsync(Id, $"You have collected {points:.2} point(s)!" +
+            GameCore.RemoveActivePlayer(Id);
+            Task.Run(() => GameCore.CheckAndSendAsync(Id, $"You have collected {points:.2} point(s)!" +
                 $" Type /game to start a new game.")).Wait();
         }
 
@@ -243,8 +243,13 @@ namespace tgBot
             return (-1, -1);
         }
 
-        protected override void OnSerialized() { }
+        void ISerializable.OnSerialized() { }
 
-        protected override void OnDeserialized() { }
+        void ISerializable.OnDeserialized() { }
+
+        ISerializable ISerializable.SetArrayMemberAfterDeserialized()
+        {
+            return this;
+        }
     }
 }

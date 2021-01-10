@@ -5,16 +5,14 @@ using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Net;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using tgBot.Cells;
 
-namespace tgBot
+namespace tgBot.Game
 {
-    public static class GameDataProcessor
+    public static partial class GameCore
     {
         //private const int DelayMinutes = 100;
         private const string DataFileExtension = ".bpdf";
@@ -63,11 +61,11 @@ namespace tgBot
             {
                 CheckCreateDataFolder();
                 using var fs = new FileStream($"{DataFileFolder}{player.Id}{DataFileExtension}", FileMode.Create);
-                await player.SerializeTo(fs);
+                await ((ISerializable)player).SerializeTo(fs);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message + ex.StackTrace);
+                await Logger.Log(ex.Message + ex.StackTrace);
             }
         }
         public static async Task SerializeValueOfType(Type type, FileStream fs, object value)
@@ -159,18 +157,18 @@ namespace tgBot
                 using var fs = new FileStream($"{DataFileFolder}{id}{DataFileExtension}", FileMode.Open);
                 {
                     res = new Player(id);
-                    await res.DeserializeFrom(fs);
+                    await ((ISerializable)res).DeserializeFrom(fs);
                 }
             }
             catch (FileNotFoundException)
             {
                 res = null;
-                Console.WriteLine($"{id} has not been registered yet or deleted its data");
+                await Logger.Log($"{id} has not been registered yet or deleted its data");
             }
             catch (Exception ex)
             {
                 res = null;
-                Console.WriteLine(ex.Message + ex.StackTrace);
+                await Logger.Log(ex.Message + ex.StackTrace);
             }
             return res;
         }
@@ -251,7 +249,7 @@ namespace tgBot
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Could not read default resources: {ex.Message + ex.StackTrace}");
+                    await Logger.Log($"Could not read default resources: {ex.Message + ex.StackTrace}");
                 }
             }
             using (reader)
@@ -280,8 +278,8 @@ namespace tgBot
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Could not read resources: {ex.Message + ex.StackTrace}");
-                    await GameInterfaceProcessor.CheckAndSendAsync(p.Id,
+                    await Logger.Log($"Could not read resources: {ex.Message + ex.StackTrace}");
+                    await CheckAndSendAsync(p.Id,
                         "A problem has occured during the reading of your modification pack(s). Try setting it to default.");
                 }
             }
@@ -298,7 +296,7 @@ namespace tgBot
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Could not read default resources: {ex.Message + ex.StackTrace}");
+                    await Logger.Log($"Could not read default resources: { ex.Message + ex.StackTrace}");
                 }
             }
             reader.Close();

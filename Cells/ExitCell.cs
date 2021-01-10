@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using tgBot.Game;
 
 namespace tgBot.Cells
 {
@@ -18,7 +19,7 @@ namespace tgBot.Cells
 
         internal override void OnEnter(Player p)
         {
-            Task.Run(() => GameInterfaceProcessor.CheckAndSendAsync(p.Id, "You've reached the exit!")).Wait();
+            Task.Run(() => GameCore.CheckAndSendAsync(p.Id, "You've reached the exit!")).Wait();
             p.EndGame();
         }
 

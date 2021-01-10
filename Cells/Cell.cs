@@ -4,10 +4,11 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.Threading.Tasks;
+using tgBot.Game;
 
 namespace tgBot.Cells
 {
-    public abstract partial class Cell : Serializable
+    public partial class Cell : ISerializable
     {
         private const int minRndColor = 100;
         private const int maxRndColor = 200;
@@ -55,6 +56,8 @@ namespace tgBot.Cells
         public string Desc { get; set; } //any
 
         public bool Opened { get; set; } //has the cell been glanced onto or visited
+
+        public Cell() { }
 
         protected Cell(string name, string colour,
             Figures figure, string figureColour,
@@ -190,12 +193,14 @@ namespace tgBot.Cells
 
         internal virtual void OnEnter(Player p)
         {
-            GameInterfaceProcessor.AskForActionAdapter(p);
+            GameCore.AskForActionAdapter(p);
         }
+
         internal virtual void OnGlance(Player p)
         {
-            GameInterfaceProcessor.AskForActionAdapter(p);
+            GameCore.AskForActionAdapter(p);
         }
+
         private Color ConvertToColor(string hexFormat)
         {
             if (hexFormat == "random")
@@ -207,7 +212,14 @@ namespace tgBot.Cells
             }
             return Color.FromArgb(int.Parse(hexFormat.Substring(0, 2), NumberStyles.HexNumber), int.Parse(hexFormat.Substring(2, 2), NumberStyles.HexNumber), int.Parse(hexFormat.Substring(4, 2), NumberStyles.HexNumber));
         }
-        protected override void OnSerialized() { }
-        protected override void OnDeserialized() { }
+
+        void ISerializable.OnSerialized() { }
+
+        void ISerializable.OnDeserialized() { }
+
+        ISerializable ISerializable.SetArrayMemberAfterDeserialized()
+        {
+            return CreateCell(Type, Name, Colour, Figure, FigureColour, Fill, HasDialogue, Effect, Desc);
+        }
     }
 }
