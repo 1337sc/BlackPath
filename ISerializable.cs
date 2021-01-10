@@ -3,13 +3,16 @@ using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Linq;
+using tgBot.Game;
 
 namespace tgBot
 {
-    public abstract class Serializable
+    public interface ISerializable
     {
+        protected abstract ISerializable SetArrayMemberAfterDeserialized();
         protected abstract void OnSerialized();
         protected abstract void OnDeserialized();
+
         public async Task SerializeTo(FileStream fs)
         {
             foreach (var prop in from prop in GetType().GetProperties()
@@ -24,7 +27,7 @@ namespace tgBot
                 {
                     object serializedValue = prop.PropertyType.IsEnum
                         ? (int)prop.GetValue(this) : prop.GetValue(this);
-                    await GameDataProcessor.SerializeValueOfType(prop.PropertyType.IsEnum
+                    await GameCore.SerializeValueOfType(prop.PropertyType.IsEnum
                         ? typeof(int) : prop.PropertyType, fs, serializedValue);
                 }
             }
@@ -43,18 +46,12 @@ namespace tgBot
                 }
                 else
                 {
-                    var deserializedVal = await GameDataProcessor.DeserializeValueOfType(
+                    var deserializedVal = await GameCore.DeserializeValueOfType(
                         prop.PropertyType.IsEnum ? typeof(int) : prop.PropertyType, fs);
                     prop.SetValue(this, deserializedVal);
                 }
             }
             OnDeserialized();
-        }
-
-        private bool CheckAttributes(PropertyInfo prop)
-        {
-            var serializedAttrs = prop.GetCustomAttributes(typeof(DoNotSerializeAttribute), false);
-            return serializedAttrs.Length == 0;
         }
 
         private async Task SerializeArray(FileStream fs, PropertyInfo prop)
@@ -65,23 +62,25 @@ namespace tgBot
                 currentArrProp = (Array)Activator.CreateInstance(prop.PropertyType);
             }
 
-            await GameDataProcessor.SerializeValueOfType(currentArrProp.Rank.GetType(),
+            await GameCore.SerializeValueOfType(currentArrProp.Rank.GetType(),
                 fs, currentArrProp.Rank); //serialize array dimensity
-            await GameDataProcessor.SerializeValueOfType(currentArrProp.GetLength(0).GetType(),
+            await GameCore.SerializeValueOfType(currentArrProp.GetLength(0).GetType(),
                 fs, currentArrProp.GetLength(0)); //serialize array length 
 
             foreach (var item in currentArrProp)
             {
-                await ((Serializable)item)?.SerializeTo(fs);
+                await ((ISerializable)item)?.SerializeTo(fs);
             }
         }
 
         private async Task DeserializeArray(FileStream fs, PropertyInfo prop)
         {
+            await Logger.Log($"Deserializing (base): {prop.Name} : {prop.DeclaringType.Name}");
+
             Type arrElementType = prop.PropertyType.GetElementType();
 
-            int currentArrPropRank = (int)await GameDataProcessor.DeserializeValueOfType(typeof(int), fs);
-            int currentArrPropLength = (int)await GameDataProcessor.DeserializeValueOfType(typeof(int), fs);
+            int currentArrPropRank = (int)await GameCore.DeserializeValueOfType(typeof(int), fs);
+            int currentArrPropLength = (int)await GameCore.DeserializeValueOfType(typeof(int), fs);
 
             int[] arrayModel = new int[currentArrPropRank]; //save array lengths using serialized rank
             for (int i = 0; i < currentArrPropRank; i++)
@@ -95,11 +94,29 @@ namespace tgBot
             {
                 for (int j = 0; j < currentArrPropLength; j++)
                 {
-                    var propInstance = Activator.CreateInstance(arrElementType);
-                    await ((Serializable)propInstance)?.DeserializeFrom(fs);
-                    ((Array)prop.GetValue(this)).SetValue(Convert.ChangeType(propInstance, arrElementType), i, j);
+                    object propInstance;
+                    try
+                    {
+                        propInstance = Activator.CreateInstance(arrElementType);
+                    }
+                    catch (Exception ex)
+                    {
+                        Task.Run(() => Logger.Log(ex.Message + ex.StackTrace)).Wait();
+                        return;
+                    }
+                    await Logger.Log($"{SetArrayMemberAfterDeserialized().GetType()}");
+                    await ((ISerializable)propInstance)?.DeserializeFrom(fs);
+                    ((Array)prop.GetValue(this)).SetValue(Convert.ChangeType(
+                        propInstance, arrElementType), i, j);
                 }
             }
         }
+
+        private bool CheckAttributes(PropertyInfo prop)
+        {
+            var serializedAttrs = prop.GetCustomAttributes(typeof(DoNotSerializeAttribute), false);
+            return serializedAttrs.Length == 0;
+        }
+
     }
 }

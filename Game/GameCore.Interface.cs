@@ -6,9 +6,9 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace tgBot
+namespace tgBot.Game
 {
-    public static class GameInterfaceProcessor
+    public static partial class GameCore
     {
         private const string MarkerRight = "Right";
         private const string MarkerLeft = "Left";
@@ -76,7 +76,7 @@ namespace tgBot
             }
             else //if it is something different from a command
             {
-                Player curPlayer = GameDataProcessor.GetActivePlayer(chatId);
+                Player curPlayer = GameCore.GetActivePlayer(chatId);
                 if (curPlayer != null) //if the user started a game
                 {
                     await HandleGameStartupMessage(cmd, chatId, curPlayer);
@@ -85,7 +85,7 @@ namespace tgBot
                 {
                     switch (msg.Type) //if the user sent a modifications pack
                     {
-                        case MessageType.Document when GameDataProcessor.GetPlayerInDialogue(chatId) != null:
+                        case MessageType.Document when GameCore.GetPlayerInDialogue(chatId) != null:
                             await HandleModPack(msg, chatId);
                             break;
                         default:
@@ -100,7 +100,7 @@ namespace tgBot
         {
             if (cmd == MarkerNewGame) //if the user has restarted the game
             {
-                await GameDataProcessor.ResetPlayer(chatId);
+                await GameCore.ResetPlayer(chatId);
                 await AskForGameFieldSize(chatId);
             }
             else if (curPlayer.Field != null) //if the user had already started a game earlier
@@ -121,13 +121,13 @@ namespace tgBot
                     break;
                 case MarkerBack: //the user changed his mind
                     await CheckAndSendAsync(chatId, "Hello again!", new ReplyKeyboardRemove());
-                    GameDataProcessor.RemovePlayerInDialogue(chatId);
+                    GameCore.RemovePlayerInDialogue(chatId);
                     break;
                 case MarkerModpack: //the user decided to install a modification
                     await CheckAndSendAsync(chatId, "Send a modification file named \"cells.csv\", " +
                         "\"items.csv\" or \"effects.csv\" depending on the resource you want to modify",
                         new ReplyKeyboardMarkup(new KeyboardButton(MarkerBack)));
-                    GameDataProcessor.AddPlayerInDialogue(new Player(chatId));
+                    GameCore.AddPlayerInDialogue(new Player(chatId));
                     break;
                 case MarkerStandardModpack: //the user needs to be sent the pack of the default resources
                     await CheckAndSendAsync(chatId, "You will be sent the files with the " +
@@ -138,7 +138,7 @@ namespace tgBot
                     await CheckAndSendAsync(chatId, "Your resource packs will be set to " +
                         "default. If you've got modified packs, they'll be deleted.",
                         new ReplyKeyboardRemove());
-                    GameDataProcessor.SetDefaultResources(chatId);
+                    GameCore.SetDefaultResources(chatId);
                     break;
             }
         }
@@ -151,8 +151,8 @@ namespace tgBot
                 await CheckAndSendAsync(chatId, "Wrong extension! All BlackPath modpacks should have " +
                     ".csv extension");
             }
-            GameDataProcessor.LoadCustomResources(chatId, resource.FilePath, msg.Document.FileName);
-            if (GameDataProcessor.RemovePlayerInDialogue(chatId)) //we don't process the user any more
+            GameCore.LoadCustomResources(chatId, resource.FilePath, msg.Document.FileName);
+            if (GameCore.RemovePlayerInDialogue(chatId)) //we don't process the user any more
             {
                 await CheckAndSendAsync(chatId, "Your modified data will be applied within " +
                     "the next game started."); //informing the user that the operation has gone OK
@@ -183,7 +183,7 @@ namespace tgBot
         private static async Task HandleInGameCommands(string cmd, long chatId, Player curPlayer)
         {
             //a separate part for performing dialogues
-            if (GameDataProcessor.GetPlayerInDialogue(chatId) != null)
+            if (GameCore.GetPlayerInDialogue(chatId) != null)
             {
                 switch (cmd)
                 {
@@ -197,7 +197,7 @@ namespace tgBot
                     case MarkerTrade:
                         break;
                     case MarkerBack:
-                        GameDataProcessor.RemovePlayerInDialogue(chatId);
+                        GameCore.RemovePlayerInDialogue(chatId);
                         curPlayer.AskedDirection = false;
                         curPlayer.AskedNeighbourhood = false;
                         AskForAction(chatId);
@@ -211,7 +211,7 @@ namespace tgBot
                     default:
                         break;
                     case MarkerLoadGame: //if the user wants to load his last saved game
-                        GameDataProcessor.UpdatePlayerTimestamp(curPlayer);
+                        GameCore.UpdatePlayerTimestamp(curPlayer);
                         AskForAction(chatId);
                         break;
                     case MarkerUp:
@@ -277,18 +277,18 @@ namespace tgBot
                     await CheckAndSendAsync(chatId, chatId.ToString());
                     break;
                 case "pos": //get your position, format: X Y
-                    curActivePlayer = GameDataProcessor.GetActivePlayer(chatId);
+                    curActivePlayer = GameCore.GetActivePlayer(chatId);
                     await CheckAndSendAsync(chatId, curActivePlayer.X.ToString() + " " +
                         curActivePlayer.Y.ToString());
                     break;
                 case "game": //starts the game itself
-                    if (GameDataProcessor.GetActivePlayer(chatId) != null)
+                    if (GameCore.GetActivePlayer(chatId) != null)
                     {
                         await CheckAndSendAsync(chatId, "You can't have two active games " +
                             "at one time! Type /stop to end the current session.");
                         break;
                     }
-                    if (await GameDataProcessor.AddActivePlayer(chatId) == 0)
+                    if (await GameCore.AddActivePlayer(chatId) == 0)
                     {
                         await CheckAndSendAsync(chatId, "Looks like you've already got " +
                             "a saved game. What'd you like to do?",
@@ -303,7 +303,7 @@ namespace tgBot
                     }
                     break;
                 case "map":
-                    curActivePlayer = GameDataProcessor.GetActivePlayer(chatId);
+                    curActivePlayer = GameCore.GetActivePlayer(chatId);
                     if (curActivePlayer != null)
                     {
                         await SendCurrentFieldPicture(curActivePlayer);
@@ -315,7 +315,7 @@ namespace tgBot
                     break;
                 case "changeopen":
                     if (chatId != 458715080) break; //maybe I would be ought to leave this for the whole society
-                    curActivePlayer = GameDataProcessor.GetActivePlayer(chatId);
+                    curActivePlayer = GameCore.GetActivePlayer(chatId);
                     if (curActivePlayer != null)
                     {
                         foreach (var c in curActivePlayer.Field)
@@ -325,7 +325,7 @@ namespace tgBot
                     }
                     break;
                 case "stop": //stops the current game
-                    curActivePlayer = GameDataProcessor.GetActivePlayer(chatId);
+                    curActivePlayer = GameCore.GetActivePlayer(chatId);
                     if (curActivePlayer == null)
                     {
                         await CheckAndSendAsync(chatId, "You have no active session.",
@@ -335,15 +335,15 @@ namespace tgBot
 
                     await CheckAndSendAsync(chatId, "Your session will be ended in few seconds...\n" +
                         "Don't type anything else!", new ReplyKeyboardRemove());
-                    curActivePlayer = GameDataProcessor.GetActivePlayer(chatId);
-                    await GameDataProcessor.SerializePlayer(curActivePlayer);
-                    GameDataProcessor.RemoveActivePlayer(chatId);
+                    curActivePlayer = GameCore.GetActivePlayer(chatId);
+                    await GameCore.SerializePlayer(curActivePlayer);
+                    GameCore.RemoveActivePlayer(chatId);
                     await CheckAndSendAsync(chatId, "Your session has been saved and ended! Type " +
                         "/game to start a game or load it.");
 
                     break;
                 case "settings": //change the settings of the game, especially the modpacks
-                    if (GameDataProcessor.GetActivePlayer(chatId) != null)
+                    if (GameCore.GetActivePlayer(chatId) != null)
                     {
                         await CheckAndSendAsync(chatId, "You can only change settings " +
                             "when not in the game! Type /stop to end the current session.");
@@ -496,13 +496,13 @@ namespace tgBot
         /// <returns></returns>
         public static async void AskForAction(long chatId, bool sendField = true)
         {
-            Player curPlayer = GameDataProcessor.GetActivePlayer(chatId);
+            Player curPlayer = GameCore.GetActivePlayer(chatId);
             if (curPlayer != null)
             {
                 List<KeyboardButton[]> buttons;
                 if (sendField)
                     await SendCurrentFieldPicture(curPlayer);
-                if (GameDataProcessor.GetPlayerInDialogue(chatId) == null) // if the player didn't start a conversation
+                if (GameCore.GetPlayerInDialogue(chatId) == null) // if the player didn't start a conversation
                 {
                     buttons = new List<KeyboardButton[]>()
                     {
@@ -542,14 +542,14 @@ namespace tgBot
         {
             try
             {
-                using var fs = await GameDataProcessor.SavePlayerField(p);
+                using var fs = await GameCore.SavePlayerField(p);
                 InputOnlineFile inputFile = new InputOnlineFile(fs, $"{p.Id}-field.png");
                 await CheckAndSendAsync(p.Id, inputFile, photoCaption:
                     $"{p.Field[p.X, p.Y].Name}: {p.Field[p.X, p.Y].Desc}\n" +
                     $"HP: {p.HP}\n" +
                     $"Money: {p.Money} UAH\n" +
                     $"Glances left: {p.GlanceCount}");
-                GameDataProcessor.writeLock.Release();
+                GameCore.writeLock.Release();
             }
             catch (Exception ex)
             {

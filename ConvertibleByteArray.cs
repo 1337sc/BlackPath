@@ -12,19 +12,6 @@ namespace tgBot
             Value = value;
         }
 
-        public object ConvertFromByteArray(byte[] value, Type type)
-        {
-            if (type == typeof(int))
-            {
-                return BitConverter.ToInt32(value, 0);
-            }
-            if (type == typeof(double))
-            {
-                return BitConverter.ToDouble(value, 0);
-            }
-            return new object();
-        }
-
         public TypeCode GetTypeCode()
         {
             return TypeCode.Object;
