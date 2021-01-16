@@ -3,8 +3,11 @@ A game that uses Telegram API to work
 
 # How to play
 If you need help while using the bot - type `/help` in the chat with the bot.
+
 If you haven't used the bot before you should type `/start` to launch it. 
+
 Type `/game` to start a new game or to load an existing one.
+
 The goal of the game is to reach the exit and not to loose all the HP.
 
 # How to launch a project
