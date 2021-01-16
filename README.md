@@ -10,7 +10,7 @@ Type `/game` to start a new game or to load an existing one.
 
 The goal of the game is to reach the exit and not to loose all the HP.
 
-# How to launch a project
+# How to launch the project
 1. Create a new bot using `@BotFather` - a Telegram bot for managing other bots - and save its token.
 2. In the project folder create a file `Program.cs` with the following content (a temporary solution, should be changed to editing a JSON file or something):
 ```csharp
