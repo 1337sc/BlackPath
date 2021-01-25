@@ -215,28 +215,28 @@ namespace tgBot.Game
                         AskForAction(chatId);
                         break;
                     case MarkerUp:
-                        curPlayer.Move(0, -1);
+                        curPlayer.DirectAction(0, -1);
                         break;
                     case MarkerUpRight:
-                        curPlayer.Move(1, -1);
+                        curPlayer.DirectAction(1, -1);
                         break;
                     case MarkerRight:
-                        curPlayer.Move(1, 0);
+                        curPlayer.DirectAction(1, 0);
                         break;
                     case MarkerDownRight:
-                        curPlayer.Move(1, 1);
+                        curPlayer.DirectAction(1, 1);
                         break;
                     case MarkerDown:
-                        curPlayer.Move(0, 1);
+                        curPlayer.DirectAction(0, 1);
                         break;
                     case MarkerDownLeft:
-                        curPlayer.Move(-1, 1);
+                        curPlayer.DirectAction(-1, 1);
                         break;
                     case MarkerLeft:
-                        curPlayer.Move(-1, 0);
+                        curPlayer.DirectAction(-1, 0);
                         break;
                     case MarkerUpLeft:
-                        curPlayer.Move(-1, -1);
+                        curPlayer.DirectAction(-1, -1);
                         break;
                 }
                 if (cmd == MarkerChangeMode + curPlayer.Mode.ToString())

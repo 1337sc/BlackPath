@@ -15,6 +15,8 @@ namespace tgBot
 
     public class Player : ISerializable
     {
+        bool ISerializable.IsDifferentForArrays { get; } = false;
+
         [DoNotSerialize]
         public long Id { get; set; }
 
@@ -33,6 +35,12 @@ namespace tgBot
         public int HP { get; set; }
 
         public int GlanceCount { get; set; }
+
+        public int WalkDist { get; set; } = 1;
+        public int GlanceDist { get; set; } = 1;
+        public bool InvulnerableToDarkness { get; set; } = false;
+        public bool InvulnerableToEnterTraps { get; set; } = false;
+        public bool InvulnerableToGlanceTraps { get; set; } = false;
 
         public bool AskedDirection { get; set; }
 
@@ -105,44 +113,16 @@ namespace tgBot
             Field[X, Y] = CellsList.Find(x => x.Type == Cell.CellTypes.Player);
             Field[X, Y].Opened = true;
         }
-        internal async void Move(int deltaX, int deltaY)
+        internal async void DirectAction(int deltaX, int deltaY)
         {
-            int newX = X + deltaX;
-            int newY = Y + deltaY;
-            if (newX < 0 || newX >= Field.GetLength(0) ||
-                newY < 0 || newY >= Field.GetLength(1))
+            switch (Mode)
             {
-                await GameCore.CheckAndSendAsync(Id, "You see nothing but a wall towards you...\n");
-                return;
-            }
-            if (Field[newX, newY].Type == Cell.CellTypes.Darkness)
-            {
-                await GameCore.CheckAndSendAsync(Id, "The darkness blocks the way there!");
-                return;
-            }
-            if (Mode == PlayerModes.Move)
-            {
-                Field[X, Y] = CellsList.Find(x => x.Type == Cell.CellTypes.Darkness).Clone();
-                Field[X, Y].Opened = true;
-                X = newX;
-                Y = newY;
-                GlanceCount = glanceCountMax;
-                Field[X, Y].OnEnter(this);
-            }
-            if (Mode == PlayerModes.Glance)
-            {
-                if (GlanceCount > 0)
-                {
-                    Field[newX, newY].Opened = true;
-                    GlanceCount--;
-                    Field[newX, newY].OnGlance(this);
-                    await GameCore.CheckAndSendAsync(Id, $"I see {Field[newX, newY].Name}");
-                }
-                else
-                {
-                    await GameCore.CheckAndSendAsync(Id,
-                        $"I have to move, the Darkness is coming!");
-                }
+                case PlayerModes.Move:
+                    await MoveAction(deltaX, deltaY);
+                    break;
+                case PlayerModes.Glance:
+                    await GlanceAction(deltaX, deltaY);
+                    break;
             }
             if (HP == 0)
             {
@@ -151,6 +131,60 @@ namespace tgBot
                 EndGame();
             }
         }
+
+        private async Task MoveAction(int deltaX, int deltaY)
+        {
+            int newX = X + WalkDist * deltaX;
+            int newY = Y + WalkDist * deltaY;
+            if (!await CheckCell(newX, newY))
+            {
+                return;
+            }
+            Field[X, Y] = CellsList.Find(x => x.Type == Cell.CellTypes.Darkness).Clone();
+            Field[X, Y].Opened = true;
+            X = newX;
+            Y = newY;
+            GlanceCount = glanceCountMax;
+            Field[X, Y].OnEnter(this);
+        }
+
+        private async Task GlanceAction(int deltaX, int deltaY)
+        {
+            int newX = X + GlanceDist * deltaX;
+            int newY = Y + GlanceDist * deltaY;
+            if (!await CheckCell(newX, newY))
+            {
+                return;
+            }
+            if (GlanceCount > 0)
+            {
+                Field[newX, newY].Opened = true;
+                GlanceCount--;
+                Field[newX, newY].OnGlance(this);
+                await GameCore.CheckAndSendAsync(Id, $"I see {Field[newX, newY].Name}");
+            }
+            else
+            {
+                await GameCore.CheckAndSendAsync(Id, $"I have to move, the Darkness is coming!");
+            }
+        }
+
+        private async Task<bool> CheckCell(int coordX, int coordY)
+        {
+            if (coordX < 0 || coordX >= Field.GetLength(0) ||
+                coordY < 0 || coordY >= Field.GetLength(1))
+            {
+                await GameCore.CheckAndSendAsync(Id, "You see nothing but a wall towards you...\n");
+                return false;
+            }
+            if (Field[coordX, coordY].Type == Cell.CellTypes.Darkness)
+            {
+                await GameCore.CheckAndSendAsync(Id, "The darkness blocks the way there!");
+                return false;
+            }
+            return true;
+        }
+
         public Bitmap DrawField()
         {
             var cornerOffset = Cell.BorderSize + Cell.CellSize;
@@ -246,10 +280,5 @@ namespace tgBot
         void ISerializable.OnSerialized() { }
 
         void ISerializable.OnDeserialized() { }
-
-        ISerializable ISerializable.SetArrayMemberAfterDeserialized()
-        {
-            return this;
-        }
     }
 }

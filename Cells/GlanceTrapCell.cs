@@ -23,7 +23,10 @@ namespace tgBot.Cells
 
         internal override void OnGlance(Player p)
         {
-            p.HP--; 
+            if (!p.InvulnerableToGlanceTraps)
+            {
+                p.HP--;
+            }
             base.OnGlance(p);
         }
     }

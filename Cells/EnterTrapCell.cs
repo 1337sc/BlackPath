@@ -18,7 +18,10 @@ namespace tgBot.Cells
 
         internal override void OnEnter(Player p)
         {
-            p.HP--;
+            if (!p.InvulnerableToEnterTraps)
+            {
+                p.HP--;
+            }
             base.OnEnter(p);
         }
 
