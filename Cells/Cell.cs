@@ -15,6 +15,7 @@ namespace tgBot.Cells
         public const int CellSize = 40;
         public const int BorderSize = 2;
         public const string FogCellColor = "EFEFEF"; //the color for the cells the player hasn't seen
+        bool ISerializable.IsDifferentForArrays { get; } = true;
 
         public static readonly Dictionary<string, CellTypes> CellTypesDict =
             new Dictionary<string, CellTypes>()
@@ -56,7 +57,7 @@ namespace tgBot.Cells
         public string Desc { get; set; } //any
 
         public bool Opened { get; set; } //has the cell been glanced onto or visited
-
+        
         public Cell() { }
 
         protected Cell(string name, string colour,
@@ -217,7 +218,7 @@ namespace tgBot.Cells
 
         void ISerializable.OnDeserialized() { }
 
-        ISerializable ISerializable.SetArrayMemberAfterDeserialized()
+        ISerializable ISerializable.GetArrayMemberToSetAfterDeserialized()
         {
             return CreateCell(Type, Name, Colour, Figure, FigureColour, Fill, HasDialogue, Effect, Desc);
         }

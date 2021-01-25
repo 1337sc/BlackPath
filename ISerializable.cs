@@ -9,7 +9,9 @@ namespace tgBot
 {
     public interface ISerializable
     {
-        protected abstract ISerializable SetArrayMemberAfterDeserialized();
+        protected bool IsDifferentForArrays { get; }
+        protected virtual ISerializable GetArrayMemberToSetAfterDeserialized() =>
+            IsDifferentForArrays ? throw new NotImplementedException() : this;
         protected abstract void OnSerialized();
         protected abstract void OnDeserialized();
 
@@ -75,8 +77,6 @@ namespace tgBot
 
         private async Task DeserializeArray(FileStream fs, PropertyInfo prop)
         {
-            await Logger.Log($"Deserializing (base): {prop.Name} : {prop.DeclaringType.Name}");
-
             Type arrElementType = prop.PropertyType.GetElementType();
 
             int currentArrPropRank = (int)await GameCore.DeserializeValueOfType(typeof(int), fs);
@@ -101,13 +101,12 @@ namespace tgBot
                     }
                     catch (Exception ex)
                     {
-                        Task.Run(() => Logger.Log(ex.Message + ex.StackTrace)).Wait();
+                        Logger.Log(ex.Message + ex.StackTrace).Wait();
                         return;
                     }
-                    await Logger.Log($"{SetArrayMemberAfterDeserialized().GetType()}");
-                    await ((ISerializable)propInstance)?.DeserializeFrom(fs);
-                    ((Array)prop.GetValue(this)).SetValue(Convert.ChangeType(
-                        propInstance, arrElementType), i, j);
+                    await (propInstance as ISerializable)?.DeserializeFrom(fs);
+                    ((Array)prop.GetValue(this)).SetValue((propInstance as ISerializable)
+                        ?.GetArrayMemberToSetAfterDeserialized(), i, j);
                 }
             }
         }
