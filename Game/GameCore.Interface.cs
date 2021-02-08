@@ -151,8 +151,8 @@ namespace tgBot.Game
                 await CheckAndSendAsync(chatId, "Wrong extension! All BlackPath modpacks should have " +
                     ".csv extension");
             }
-            GameCore.LoadCustomResources(chatId, resource.FilePath, msg.Document.FileName);
-            if (GameCore.RemovePlayerInDialogue(chatId)) //we don't process the user any more
+            LoadCustomResources(chatId, resource.FilePath, msg.Document.FileName);
+            if (RemovePlayerInDialogue(chatId)) //we don't process the user any more
             {
                 await CheckAndSendAsync(chatId, "Your modified data will be applied within " +
                     "the next game started."); //informing the user that the operation has gone OK

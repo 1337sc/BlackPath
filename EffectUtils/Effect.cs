@@ -34,6 +34,10 @@ namespace tgBot.EffectUtils
             };
 
         public string Name { get; set; }
+        [DoNotSerialize]
+        public string Type { get; set; }
+        [DoNotSerialize]
+        public bool IsManual { get; set; }
 
         /// <summary>
         /// Params available: <br/>
@@ -46,16 +50,38 @@ namespace tgBot.EffectUtils
         /// </summary>
         [DoNotSerialize]
         public string EffectProgram { get; set; }
-
         [DoNotSerialize]
         public bool IsDeadly { get; set; } //true, false - if false, the effect can`t kill the player even if HP is 0, but it will still reduce health if HP > 0
-
         [DoNotSerialize]
         public string DurationType { get; set; } //a number or "random"
 
+        private int duration;
         [DoNotSerialize]
-        public int Duration { get; set; }
-        
+        public int Duration
+        {
+            get
+            {
+                if (duration <= 0)
+                {
+                    try
+                    {
+                        duration = DurationType == "random"
+                            ? new Random().Next(1, 6) //max number is picked in an almost random way
+                            : int.Parse(DurationType);
+                    }
+                    catch (FormatException ex)
+                    {
+                        Logger.Log("Could not parse duration: " + ex.Message).Wait();
+                    }
+                }
+                return duration;
+            }
+            private set
+            {
+                duration = value;
+            }
+        }
+
         public void ProcessEffect(Player p)
         {
             foreach (var part in EffectProgram.Replace(" ", string.Empty).Split(';'))
@@ -178,14 +204,8 @@ namespace tgBot.EffectUtils
             p.WalkDist = walkDistValue;
         }
 
-        void ISerializable.OnSerialized()
-        {
-            throw new NotImplementedException();
-        }
+        void ISerializable.OnSerialized() { }
 
-        void ISerializable.OnDeserialized()
-        {
-            throw new NotImplementedException();
-        }
+        void ISerializable.OnDeserialized() { }
     }
 }

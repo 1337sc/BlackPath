@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Threading.Tasks;
 using tgBot.Cells;
+using tgBot.EffectUtils;
 using tgBot.Game;
 
 namespace tgBot
@@ -13,7 +14,7 @@ namespace tgBot
         Move
     }
 
-    public class Player : ISerializable
+    public sealed class Player : ISerializable
     {
         [DoNotSerialize]
         public long Id { get; set; }
@@ -45,11 +46,36 @@ namespace tgBot
         [DoNotSerialize]
         public DateTime TimeStamp { get; set; } //to delete inactive users
         [DoNotSerialize]
-        public List<Cell> CellsList { get; set; } //list of a player's cells (mod support)
+        public List<Cell> CellsList { get; } = new List<Cell>(); //list of a player's cells (mod support)
+        /// <summary>
+        /// List of all player's effects (mod support). Isn't serialized.
+        /// </summary>
+        [DoNotSerialize]
+        public List<Effect> EffectsList { get; } = new List<Effect>(); 
+        /// <summary>
+        /// List of the effects applied to the player (for usage). Isn't serialized.
+        /// </summary>
+        [DoNotSerialize]
+        public List<Effect> CurrentEffectsList { get; private set; } = new List<Effect>();
+        
+        /// <summary>
+        /// Array of the effects applied to the player (for serialization)
+        /// </summary>
+        private Effect[] CurrentEffects
+        {
+            get => CurrentEffectsList.ToArray();
+            set
+            {
+                foreach (var item in value)
+                {
+                    CurrentEffectsList.Add(item);
+                }
+            } 
+        }
         private readonly Cell playerCell;
-        //TODO: Items, Effects and their lists
+        //TODO: Items and their list
         //public List<Item> ItemsList { get; set; }
-        //public List<Effect> EffectsList { get; set; }
+
         /// <summary>
         /// Serialization constructor
         /// </summary>

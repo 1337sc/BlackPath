@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using tgBot.EffectUtils;
 
 namespace tgBot.Cells
 {
@@ -9,10 +10,10 @@ namespace tgBot.Cells
         public GlanceTrapCell(string name, string colour,
             Figures figure, string figureColour,
             bool fill, bool hasDialogue,
-            string effect, string desc) : base(name, colour,
+            Effect[] effects, string desc) : base(name, colour,
                 figure, figureColour,
                 fill, hasDialogue,
-                effect, desc)
+                effects, desc)
         {
             Type = CellTypes.GlanceTrap;
             Opened = false;

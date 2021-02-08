@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using tgBot.EffectUtils;
 
 namespace tgBot.Cells
 {
@@ -9,11 +10,11 @@ namespace tgBot.Cells
         public EmptyCell(string name, string colour,
             Figures figure, string figureColour,
             bool fill, bool hasDialogue,
-            string effect, string desc) : base(name: name,
+            Effect[] effects, string desc) : base(name: name,
                 colour: colour, figure: figure,
                 figureColour: figureColour,
                 fill: fill, hasDialogue: hasDialogue,
-                effect: effect, desc: desc)
+                effects: effects, desc: desc)
         {
             Type = CellTypes.Empty;
             Opened = false;
