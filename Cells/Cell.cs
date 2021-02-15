@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.Threading.Tasks;
+using tgBot.EffectUtils;
 using tgBot.Game;
 
 namespace tgBot.Cells
@@ -52,7 +53,7 @@ namespace tgBot.Cells
 
         public bool HasDialogue { get; set; } //true, false
 
-        public string Effect { get; set; } //none, positive, negative, neutral, "name;Effect name from table" [;probability]
+        public Effect[] Effects { get; set; } //none, positive, negative, neutral, "name;Effect name from table" [;probability]
 
         public string Desc { get; set; } //any
 
@@ -63,7 +64,7 @@ namespace tgBot.Cells
         protected Cell(string name, string colour,
             Figures figure, string figureColour,
             bool fill, bool hasDialogue,
-            string effect, string desc)
+            Effect[] effects, string desc)
         {
 
             Name = name;
@@ -72,14 +73,14 @@ namespace tgBot.Cells
             FigureColour = figureColour;
             Fill = fill;
             HasDialogue = hasDialogue;
-            Effect = effect;
+            Effects = effects;
             Desc = desc;
         }
 
         public static Cell CreateCell(CellTypes type, string name, string colour,
             Figures figure, string figureColour,
             bool fill, bool hasDialogue,
-            string effect, string desc)
+            Effect[] effects, string desc)
         {
             switch (type)
             {
@@ -88,48 +89,48 @@ namespace tgBot.Cells
                     return new EmptyCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effect: effect, desc: desc);
+                        effects: effects, desc: desc);
                 case CellTypes.Empty:
                     return new EmptyCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effect: effect, desc: desc);
+                        effects: effects, desc: desc);
                 case CellTypes.GlanceTrap:
                     return new GlanceTrapCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effect: effect, desc: desc);
+                        effects: effects, desc: desc);
                 case CellTypes.EnterTrap:
                     return new EnterTrapCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effect: effect, desc: desc);
+                        effects: effects, desc: desc);
                 case CellTypes.Char:
                     return new CharCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effect: effect, desc: desc);
+                        effects: effects, desc: desc);
                 case CellTypes.Player:
                     return new PlayerCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effect: effect, desc: desc);
+                        effects: effects, desc: desc);
                 case CellTypes.Darkness:
                     return new DarknessCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effect: effect, desc: desc);
+                        effects: effects, desc: desc);
                 case CellTypes.Exit:
                     return new ExitCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effect: effect, desc: desc);
+                        effects: effects, desc: desc);
                 default:
                     Task.Run(() => Logger.Log("Unrecognizable cell type - it's been set to Empty")).Wait();
                     return new EmptyCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effect: effect, desc: desc);
+                        effects: effects, desc: desc);
             }
         }
 
@@ -142,7 +143,7 @@ namespace tgBot.Cells
                 $"FigureColour: {FigureColour}\n" +
                 $"Fill: {Fill}\n" +
                 $"Dialogue: {HasDialogue}\n" +
-                $"Effect: {Effect}\n" +
+                $"Effect: {Effects[0]?.ToString()}\n" +
                 $"Desc: {Desc}\n";
         }
         public Cell Clone()
@@ -152,7 +153,7 @@ namespace tgBot.Cells
             {
                 return cell;
             }
-            return null;
+            throw new InvalidOperationException();
         }
         public Bitmap DrawCell()
         {
@@ -194,6 +195,11 @@ namespace tgBot.Cells
 
         internal virtual void OnEnter(Player p)
         {
+            p.CurrentEffectsList.ProcessEffects(p);
+            if (Effects != null)
+            {
+                p.CurrentEffectsList.AddRange(Effects);
+            }
             GameCore.AskForActionAdapter(p);
         }
 
@@ -202,7 +208,7 @@ namespace tgBot.Cells
             GameCore.AskForActionAdapter(p);
         }
 
-        private Color ConvertToColor(string hexFormat)
+        private static Color ConvertToColor(string hexFormat)
         {
             if (hexFormat == "random")
             {
@@ -220,7 +226,7 @@ namespace tgBot.Cells
 
         ISerializable ISerializable.GetArrayMemberToSetAfterDeserialized()
         {
-            return CreateCell(Type, Name, Colour, Figure, FigureColour, Fill, HasDialogue, Effect, Desc);
+            return CreateCell(Type, Name, Colour, Figure, FigureColour, Fill, HasDialogue, Effects, Desc);
         }
     }
 }

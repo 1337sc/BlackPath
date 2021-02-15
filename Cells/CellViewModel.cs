@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using tgBot.EffectUtils;
 
 namespace tgBot.Cells
 {
@@ -12,15 +13,14 @@ namespace tgBot.Cells
             string figureColour,
             bool fill,
             bool hasDialogue,
-            string effect,
+            Effect[] effects,
             string desc) : base(name,
                 colour,
                 figure,
                 figureColour,
                 fill,
                 hasDialogue,
-                effect,
-                desc)
+                effects, desc)
         {
         }
     }

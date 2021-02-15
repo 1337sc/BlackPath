@@ -87,7 +87,6 @@ namespace tgBot
             {
                 arrayModel[i] = currentArrPropLength;
             }
-
             prop.SetValue(this, Array.CreateInstance(arrElementType, arrayModel));
 
             for (int i = 0; i < currentArrPropLength; i++)
@@ -111,11 +110,21 @@ namespace tgBot
             }
         }
 
-        private bool CheckAttributes(PropertyInfo prop)
+        private static bool CheckAttributes(PropertyInfo prop)
         {
             var serializedAttrs = prop.GetCustomAttributes(typeof(DoNotSerializeAttribute), false);
             return serializedAttrs.Length == 0;
         }
 
+        /// <summary>
+        /// Checks if a type implements an interface
+        /// </summary>
+        /// <param name="typeObject"></param>
+        /// <param name="interfaceCriteria"></param>
+        /// <returns></returns>
+        private bool AssertTypeFilter(Type typeObject, object interfaceCriteria)
+        {
+            return typeObject.Name.Contains(interfaceCriteria.ToString());
+        }
     }
 }

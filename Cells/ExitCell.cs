@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using tgBot.EffectUtils;
 using tgBot.Game;
 
 namespace tgBot.Cells
@@ -10,8 +11,8 @@ namespace tgBot.Cells
     {
         public ExitCell(string name, string colour, 
             Figures figure, string figureColour, bool fill, 
-            bool hasDialogue, string effect, string desc) : base(name, colour, 
-                figure, figureColour, fill, hasDialogue, effect, desc)
+            bool hasDialogue, Effect[] effects, string desc) : base(name, colour,
+                figure, figureColour, fill, hasDialogue, effects, desc)
         {
             Type = CellTypes.Exit;
             Opened = false;

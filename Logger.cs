@@ -34,7 +34,7 @@ namespace tgBot
             using (FileStream fs = new FileStream(path, FileMode.OpenOrCreate))
             {
                 _ = fs.Seek(0, SeekOrigin.End);
-                await fs.WriteAsync(Encoding.UTF8.GetBytes(message + $"\t at {DateTime.Now}\n"));
+                await fs.WriteAsync(Encoding.UTF8.GetBytes((message ?? "null") + $"\t on {DateTime.Now}\n"));
             }
             LogSemaphore.Release();
         }

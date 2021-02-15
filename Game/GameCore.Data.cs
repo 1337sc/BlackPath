@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using tgBot.Cells;
+using tgBot.EffectUtils;
 
 namespace tgBot.Game
 {
@@ -235,23 +236,12 @@ namespace tgBot.Game
         /// <param name="p"></param>
         public static async void GetPlayerResources(Player p)
         {
-            FileInfo curResFile = new FileInfo($"{DataFileFolder}{p.Id}-cells{ResourceFileExtension}");
-            StreamReader reader = null;
-            if (curResFile.Exists)
-            {
-                reader = new StreamReader(curResFile.FullName);
-            }
-            else
-            {
-                try
-                {
-                    reader = new StreamReader($"{DataFileFolder}default-cells{ResourceFileExtension}");
-                }
-                catch (Exception ex)
-                {
-                    await Logger.Log($"Could not read default resources: {ex.Message + ex.StackTrace}");
-                }
-            }
+            await SetPlayerEffects(p, GetProperResourcesReader("effects", p));
+            await SetPlayerCells(p, GetProperResourcesReader("cells", p));
+        }
+
+        private static async Task SetPlayerEffects(Player p, StreamReader reader)
+        {
             using (reader)
             {
                 using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
@@ -259,17 +249,59 @@ namespace tgBot.Game
                 {
                     csvReader.Read();
                     csvReader.ReadHeader();
-                    p.CellsList = new List<Cell>();
                     while (csvReader.Read())
                     {
-                        Cell newCell = Cell.CreateCell(type: Cell.CellTypesDict.TryGetValue(csvReader.GetField("Type"), out Cell.CellTypes type) ? type : Cell.CellTypes.ErrType,
+                        var newEffect = new Effect
+                        {
+                            Name = csvReader.GetField("Name"),
+                            Type = csvReader.GetField("Type"),
+
+                            IsManual = csvReader.GetField<bool>("Manual"),
+                            IsDeadly = csvReader.GetField<bool>("Deadly"),
+
+                            EffectProgram = csvReader.GetField("EffectProgram"),
+                            DurationType = csvReader.GetField("DurationType")
+                        };
+                        p.EffectsList.Add(newEffect);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await Logger.Log($"Could not read effects: {ex.Message + ex.StackTrace}");
+                    await CheckAndSendAsync(p.Id,
+                        "A problem has occured during the reading of your modification pack(s). Try setting it to default.");
+                }
+            }
+        }
+
+        private static async Task SetPlayerCells(Player p, StreamReader reader)
+        {
+            using (reader)
+            {
+                using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
+                var cellEffects = new List<Effect>();
+                try
+                {
+                    csvReader.Read();
+                    csvReader.ReadHeader();
+                    while (csvReader.Read())
+                    {
+                        cellEffects = p.EffectsList.FindAll(x => csvReader.GetField("Effect").Contains(x.Name));
+                        
+                        Cell newCell = Cell.CreateCell(
+                            type: Cell.CellTypesDict.TryGetValue(csvReader.GetField("Type"), out Cell.CellTypes type)
+                            ? type : Cell.CellTypes.ErrType,
                             name: csvReader.GetField("Name"),
+
                             colour: csvReader.GetField("Colour"),
-                            figure: Cell.FiguresDict.TryGetValue(csvReader.GetField("Figure"), out Cell.Figures fig) ? fig : Cell.Figures.None,
-                            figureColour: csvReader.GetField("FigureColour"),
                             fill: csvReader.GetField<bool>("Fill"),
+
+                            figure: Cell.FiguresDict.TryGetValue(csvReader.GetField("Figure"), out Cell.Figures fig)
+                            ? fig : Cell.Figures.None,
+                            figureColour: csvReader.GetField("FigureColour"),
+
                             hasDialogue: csvReader.GetField<bool>("Dialogue"),
-                            effect: csvReader.GetField("Effect"),
+                            effects: cellEffects.ToArray(),
                             desc: csvReader.GetField("Desc")
                         );
                         if (newCell.Type != Cell.CellTypes.ErrType)
@@ -278,30 +310,36 @@ namespace tgBot.Game
                 }
                 catch (Exception ex)
                 {
-                    await Logger.Log($"Could not read resources: {ex.Message + ex.StackTrace}");
+                    await Logger.Log($"Could not read cells: {ex.Message + ex.StackTrace}");
                     await CheckAndSendAsync(p.Id,
                         "A problem has occured during the reading of your modification pack(s). Try setting it to default.");
                 }
             }
-            curResFile = new FileInfo($"{DataFileFolder}{p.Id}-items{ResourceFileExtension}");
+        }
+
+        private static StreamReader GetProperResourcesReader(string resourceName, Player p)
+        {
+            var curResFile = new FileInfo($"{DataFileFolder}{p.Id}-{resourceName}{ResourceFileExtension}");
+            StreamReader res = null;
             if (curResFile.Exists)
             {
-                reader = new StreamReader(curResFile.FullName);
+                res = new StreamReader(curResFile.FullName);
             }
             else
             {
                 try
                 {
-                    reader = new StreamReader($"{DataFileFolder}default-items{ResourceFileExtension}");
+                    res = new StreamReader($"{DataFileFolder}default-{resourceName}{ResourceFileExtension}");
                 }
                 catch (Exception ex)
                 {
-                    await Logger.Log($"Could not read default resources: { ex.Message + ex.StackTrace}");
+                    Task.Run(() => Logger.Log($"Could not read default {resourceName}s: {ex.Message + ex.StackTrace}"));
                 }
             }
-            reader.Close();
-            //TODO: read items & effects when they are developed o_o
+
+            return res;
         }
+
         public static void SetDefaultResources(long chatId)
         {
             var curFileInfo = new FileInfo($"{DataFileFolder}{chatId}-cells{ResourceFileExtension}");
@@ -353,6 +391,19 @@ namespace tgBot.Game
             }
             var openFs = new FileStream($"{DataFileFolder}{p.Id}-field.png", FileMode.Open, FileAccess.Read);
             return openFs;
+        }
+
+        /// <summary>
+        /// Processes a group of effects. Placed in the extension method for convenience.
+        /// </summary>
+        /// <param name="effects">A list of effects</param>
+        /// <param name="p">Player to apply effects to</param>
+        public static void ProcessEffects(this IEnumerable<Effect> effects, Player p)
+        {
+            foreach (var effect in effects)
+            {
+                effect.ProcessEffect(p);
+            }
         }
     }
 }
