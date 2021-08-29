@@ -170,6 +170,7 @@ namespace tgBot.Game
                 res = null;
                 await Logger.Log(ex.Message + ex.StackTrace);
             }
+            await Logger.Log(res.Field?.Length.ToString());
             return res;
         }
         private static async Task<string> ReadStrFromStream(Stream fs, int length)
@@ -262,7 +263,11 @@ namespace tgBot.Game
                     p.CellsList = new List<Cell>();
                     while (csvReader.Read())
                     {
-                        Cell newCell = Cell.CreateCell(type: Cell.CellTypesDict.TryGetValue(csvReader.GetField("Type"), out Cell.CellTypes type) ? type : Cell.CellTypes.ErrType,
+                        cellEffects = p.EffectsList.FindAll(x => csvReader.GetField("Effect").Contains(x.Name));
+
+                        Cell newCell = Cell.CreateCell(
+                            type: Cell.CellTypesDict.TryGetValue(csvReader.GetField("Type"), out Cell.CellTypes type)
+                            ? type : Cell.CellTypes.ErrType,
                             name: csvReader.GetField("Name"),
                             colour: csvReader.GetField("Colour"),
                             figure: Cell.FiguresDict.TryGetValue(csvReader.GetField("Figure"), out Cell.Figures fig) ? fig : Cell.Figures.None,
