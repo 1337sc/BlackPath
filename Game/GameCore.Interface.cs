@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
@@ -103,7 +104,8 @@ namespace tgBot.Game
                 await GameCore.ResetPlayer(chatId);
                 await AskForGameFieldSize(chatId);
             }
-            else if (curPlayer.Field != null) //if the user had already started a game earlier
+            else if (GetActivePlayer(chatId) != null 
+                && GetActivePlayer(chatId).Field.Length != 0) //if the user had already started a game earlier
             {
                 await HandleInGameCommands(cmd, chatId, curPlayer);
             }
@@ -544,11 +546,18 @@ namespace tgBot.Game
             {
                 using var fs = await GameCore.SavePlayerField(p);
                 InputOnlineFile inputFile = new InputOnlineFile(fs, $"{p.Id}-field.png");
-                await CheckAndSendAsync(p.Id, inputFile, photoCaption:
-                    $"{p.Field[p.X, p.Y].Name}: {p.Field[p.X, p.Y].Desc}\n" +
+                var caption = new StringBuilder($"{p.Field[p.X, p.Y].Name}: {p.Field[p.X, p.Y].Desc}\n" +
                     $"HP: {p.HP}\n" +
                     $"Money: {p.Money} UAH\n" +
-                    $"Glances left: {p.GlanceCount}");
+                    $"Glances left: {p.GlanceCount}\n" +
+                    $"Applied effects: ");
+
+                for (int i = p.CurrentEffectsList.Count - 1; i >= 0; i--)
+                {
+                    EffectUtils.Effect effect = p.CurrentEffectsList[i];
+                    caption.Append(effect.Name).Append(i != 0 ? "," : "\n");
+                }
+                await CheckAndSendAsync(p.Id, inputFile, photoCaption: caption.ToString());
                 GameCore.writeLock.Release();
             }
             catch (Exception ex)
