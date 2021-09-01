@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot.Types.Enums;
@@ -80,7 +81,7 @@ namespace tgBot.Game
                 Player curPlayer = GameCore.GetActivePlayer(chatId);
                 if (curPlayer != null) //if the user started a game
                 {
-                    await HandleGameStartupMessage(cmd, chatId, curPlayer);
+                    await HandleGameStartupMessage(cmd, curPlayer);
                 }
                 else //if the user didn't start a game (entered settings)
                 {
@@ -97,21 +98,23 @@ namespace tgBot.Game
             }
         }
 
-        private static async Task HandleGameStartupMessage(string cmd, long chatId, Player curPlayer)
+        private static async Task HandleGameStartupMessage(string cmd, Player curPlayer)
         {
+            var chatId = curPlayer.Id;
             if (cmd == MarkerNewGame) //if the user has restarted the game
             {
                 await GameCore.ResetPlayer(chatId);
                 await AskForGameFieldSize(chatId);
             }
-            else if (GetActivePlayer(chatId) != null 
-                && GetActivePlayer(chatId).Field.Length != 0) //if the user had already started a game earlier
+            else if (curPlayer != null 
+                && curPlayer.Field != null 
+                && curPlayer.Field.Length != 0) //if the user had already started a game earlier
             {
-                await HandleInGameCommands(cmd, chatId, curPlayer);
+                await HandleInGameCommands(cmd, curPlayer);
             }
             else //if the user hadn't started the game yet
             {
-                HandleFieldSize(cmd, chatId, curPlayer);
+                HandleFieldSize(cmd, curPlayer);
             }
         }
 
@@ -161,7 +164,7 @@ namespace tgBot.Game
             }
         }
 
-        private static void HandleFieldSize(string cmd, long chatId, Player curPlayer)
+        private static void HandleFieldSize(string cmd, Player curPlayer)
         {
             if (cmd == MarkerSizeSmall)
             {
@@ -179,11 +182,12 @@ namespace tgBot.Game
             {
                 curPlayer.CreateField(FieldSizeExtraLarge);
             }
-            AskForAction(chatId);
+            AskForAction(curPlayer.Id);
         }
 
-        private static async Task HandleInGameCommands(string cmd, long chatId, Player curPlayer)
+        private static async Task HandleInGameCommands(string cmd, Player curPlayer)
         {
+            var chatId = curPlayer.Id;
             //a separate part for performing dialogues
             if (GameCore.GetPlayerInDialogue(chatId) != null)
             {
@@ -547,16 +551,11 @@ namespace tgBot.Game
                 using var fs = await GameCore.SavePlayerField(p);
                 InputOnlineFile inputFile = new InputOnlineFile(fs, $"{p.Id}-field.png");
                 var caption = new StringBuilder($"{p.Field[p.X, p.Y].Name}: {p.Field[p.X, p.Y].Desc}\n" +
+                    $"Your figure: {p.Figure}\n" +
                     $"HP: {p.HP}\n" +
                     $"Money: {p.Money} UAH\n" +
                     $"Glances left: {p.GlanceCount}\n" +
-                    $"Applied effects: ");
-
-                for (int i = p.CurrentEffectsList.Count - 1; i >= 0; i--)
-                {
-                    EffectUtils.Effect effect = p.CurrentEffectsList[i];
-                    caption.Append(effect.Name).Append(i != 0 ? "," : "\n");
-                }
+                    $"Applied effects: {string.Join(", ", p.CurrentEffectsList.Select(e => e.Name))}");
                 await CheckAndSendAsync(p.Id, inputFile, photoCaption: caption.ToString());
                 GameCore.writeLock.Release();
             }

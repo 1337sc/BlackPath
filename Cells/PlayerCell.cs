@@ -9,8 +9,8 @@ namespace tgBot.Cells
     {
         public PlayerCell(string name, string colour,
             Figures figure, string figureColour, bool fill,
-            bool hasDialogue, Effect[] effects, string desc) : base(name, colour,
-                figure, figureColour, fill, hasDialogue, effects, desc)
+            bool hasDialogue, Effect[] enterEffects, Effect[] glanceEffects, string desc) : base(name, colour,
+                figure, figureColour, fill, hasDialogue, enterEffects, glanceEffects, desc)
         {
             Type = CellTypes.Player;
             Opened = true;

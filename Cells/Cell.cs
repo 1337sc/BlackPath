@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using tgBot.EffectUtils;
 using tgBot.Game;
@@ -53,7 +54,8 @@ namespace tgBot.Cells
 
         public bool HasDialogue { get; set; } //true, false
 
-        public Effect[] Effects { get; set; } //none, positive, negative, neutral, "name;Effect name from table" [;probability]
+        public Effect[] OnEnterEffects { get; set; } //none, positive, negative, neutral, "E;m_{Effect name from table}" [;probability]
+        public Effect[] OnGlanceEffects { get; set; } //none, positive, negative, neutral, "E;g_{Effect name from table}" [;probability]
 
         public string Desc { get; set; } //any
 
@@ -64,7 +66,7 @@ namespace tgBot.Cells
         protected Cell(string name, string colour,
             Figures figure, string figureColour,
             bool fill, bool hasDialogue,
-            Effect[] effects, string desc)
+            Effect[] enterEffects, Effect[] glanceEffects, string desc)
         {
 
             Name = name;
@@ -73,14 +75,15 @@ namespace tgBot.Cells
             FigureColour = figureColour;
             Fill = fill;
             HasDialogue = hasDialogue;
-            Effects = effects;
+            OnEnterEffects = enterEffects;
+            OnGlanceEffects = glanceEffects;
             Desc = desc;
         }
 
         public static Cell CreateCell(CellTypes type, string name, string colour,
             Figures figure, string figureColour,
             bool fill, bool hasDialogue,
-            Effect[] effects, string desc)
+            Effect[] enterEffects, Effect[] glanceEffects, string desc)
         {
             switch (type)
             {
@@ -89,48 +92,48 @@ namespace tgBot.Cells
                     return new EmptyCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effects: effects, desc: desc);
+                        enterEffects: enterEffects, glanceEffects: glanceEffects, desc: desc);
                 case CellTypes.Empty:
                     return new EmptyCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effects: effects, desc: desc);
+                        enterEffects: enterEffects, glanceEffects: glanceEffects, desc: desc);
                 case CellTypes.GlanceTrap:
                     return new GlanceTrapCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effects: effects, desc: desc);
+                        enterEffects: enterEffects, glanceEffects: glanceEffects, desc: desc);
                 case CellTypes.EnterTrap:
                     return new EnterTrapCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effects: effects, desc: desc);
+                        enterEffects: enterEffects, glanceEffects: glanceEffects, desc: desc);
                 case CellTypes.Char:
                     return new CharCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effects: effects, desc: desc);
+                        enterEffects: enterEffects, glanceEffects: glanceEffects, desc: desc);
                 case CellTypes.Player:
                     return new PlayerCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effects: effects, desc: desc);
+                        enterEffects: enterEffects, glanceEffects: glanceEffects, desc: desc);
                 case CellTypes.Darkness:
                     return new DarknessCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effects: effects, desc: desc);
+                        enterEffects: enterEffects, glanceEffects: glanceEffects, desc: desc);
                 case CellTypes.Exit:
                     return new ExitCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effects: effects, desc: desc);
+                        enterEffects: enterEffects, glanceEffects: glanceEffects, desc: desc);
                 default:
                     Task.Run(() => Logger.Log("Unrecognizable cell type - it's been set to Empty")).Wait();
                     return new EmptyCell(name: name, colour: colour,
                         figure: figure, figureColour: figureColour,
                         fill: fill, hasDialogue: hasDialogue,
-                        effects: effects, desc: desc);
+                        enterEffects: enterEffects, glanceEffects: glanceEffects, desc: desc);
             }
         }
 
@@ -143,7 +146,8 @@ namespace tgBot.Cells
                 $"FigureColour: {FigureColour}\n" +
                 $"Fill: {Fill}\n" +
                 $"Dialogue: {HasDialogue}\n" +
-                $"Effect: {Effects[0]?.ToString()}\n" +
+                $"Effects on enter: {OnEnterEffects?.Select(e => e.ToString())}\n" +
+                $"Effects on glance: {OnGlanceEffects?.Select(e => e.ToString())}\n" +
                 $"Desc: {Desc}\n";
         }
         public Cell Clone()
@@ -196,15 +200,19 @@ namespace tgBot.Cells
         internal virtual void OnEnter(Player p)
         {
             p.CurrentEffectsList.ProcessEffects(p);
-            if (Effects != null)
+            if (OnEnterEffects != null)
             {
-                p.CurrentEffectsList.AddRange(Effects);
+                p.CurrentEffectsList.AddRange(OnEnterEffects);
             }
             GameCore.AskForActionAdapter(p);
         }
 
         internal virtual void OnGlance(Player p)
         {
+            if (OnGlanceEffects != null)
+            {
+                p.CurrentEffectsList.AddRange(OnGlanceEffects);
+            }
             GameCore.AskForActionAdapter(p);
         }
 
@@ -226,7 +234,7 @@ namespace tgBot.Cells
 
         ISerializable ISerializable.GetArrayMemberToSetAfterDeserialized()
         {
-            return CreateCell(Type, Name, Colour, Figure, FigureColour, Fill, HasDialogue, Effects, Desc);
+            return CreateCell(Type, Name, Colour, Figure, FigureColour, Fill, HasDialogue, OnEnterEffects, OnGlanceEffects, Desc);
         }
     }
 }

@@ -10,10 +10,10 @@ namespace tgBot.Cells
         public GlanceTrapCell(string name, string colour,
             Figures figure, string figureColour,
             bool fill, bool hasDialogue,
-            Effect[] effects, string desc) : base(name, colour,
+            Effect[] enterEffects, Effect[] glanceEffects, string desc) : base(name, colour,
                 figure, figureColour,
                 fill, hasDialogue,
-                effects, desc)
+                enterEffects, glanceEffects, desc)
         {
             Type = CellTypes.GlanceTrap;
             Opened = false;
@@ -27,6 +27,7 @@ namespace tgBot.Cells
             if (!p.InvulnerableToGlanceTraps)
             {
                 p.HP--;
+                p.GlanceCount = 0;
             }
             base.OnGlance(p);
         }

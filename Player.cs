@@ -95,6 +95,7 @@ namespace tgBot
         {
             Id = id;
             Money = 0;
+            Figure = (Cell.Figures)new Random().Next(1, 4);
             HP = 3;
             GlanceCount = glanceCountMax;
             TimeStamp = DateTime.Now;
@@ -176,6 +177,11 @@ namespace tgBot
 
         private async Task GlanceAction(int deltaX, int deltaY)
         {
+            if (GlanceDist == 0)
+            {
+                await GameCore.CheckAndSendAsync(Id, $"I can't see anything!");
+                return;
+            }
             int newX = X + GlanceDist * deltaX;
             int newY = Y + GlanceDist * deltaY;
             if (!await CheckCell(newX, newY))

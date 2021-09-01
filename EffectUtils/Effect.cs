@@ -84,6 +84,10 @@ namespace tgBot.EffectUtils
 
         public void ProcessEffect(Player p)
         {
+            if (Duration <= 0)
+            {
+                p.CurrentEffectsList.Remove(this);
+            }
             foreach (var part in EffectProgram.Replace(" ", string.Empty).Split(';'))
             {
                 try

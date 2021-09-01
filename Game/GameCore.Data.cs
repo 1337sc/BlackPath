@@ -31,7 +31,7 @@ namespace tgBot.Game
         {
             int res = 0;
             Player p = await DeserializePlayer(id);
-            if (p == null)
+            if (p == null || p.Field == null || p.Field.Length == 0)
             {
                 p = new Player(id);
                 await SerializePlayer(p);
@@ -279,15 +279,26 @@ namespace tgBot.Game
             using (reader)
             {
                 using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
-                var cellEffects = new List<Effect>();
+                var enterCellEffects = new List<Effect>();
+                var glanceCellEffects = new List<Effect>();
                 try
                 {
                     csvReader.Read();
                     csvReader.ReadHeader();
                     while (csvReader.Read())
                     {
-                        cellEffects = p.EffectsList.FindAll(x => csvReader.GetField("Effect").Contains(x.Name));
-                        
+                        // TODO: "negative", "positive", "neutral" general effects descriptions processing
+                        // TODO: duration and probability processing
+                        string effectField = csvReader.GetField("Effect");
+                        enterCellEffects = p.EffectsList.FindAll(x =>
+                        {
+                            return effectField.Contains("e_" + x.Name);
+                        });
+                        glanceCellEffects = p.EffectsList.FindAll(x =>
+                        {
+                            return effectField.Contains("g_" + x.Name);
+                        });
+
                         Cell newCell = Cell.CreateCell(
                             type: Cell.CellTypesDict.TryGetValue(csvReader.GetField("Type"), out Cell.CellTypes type)
                             ? type : Cell.CellTypes.ErrType,
@@ -301,7 +312,8 @@ namespace tgBot.Game
                             figureColour: csvReader.GetField("FigureColour"),
 
                             hasDialogue: csvReader.GetField<bool>("Dialogue"),
-                            effects: cellEffects.ToArray(),
+                            enterEffects: enterCellEffects.ToArray(),
+                            glanceEffects: glanceCellEffects.ToArray(), 
                             desc: csvReader.GetField("Desc")
                         );
                         if (newCell.Type != Cell.CellTypes.ErrType)
