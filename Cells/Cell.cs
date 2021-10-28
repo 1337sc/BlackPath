@@ -17,6 +17,8 @@ namespace tgBot.Cells
         public const int CellSize = 40;
         public const int BorderSize = 2;
         public const string FogCellColor = "EFEFEF"; //the color for the cells the player hasn't seen
+
+        [DoNotSerialize]
         bool ISerializable.IsDifferentForArrays { get; } = true;
 
         public static readonly Dictionary<string, CellTypes> CellTypesDict =
@@ -200,18 +202,18 @@ namespace tgBot.Cells
         internal virtual void OnEnter(Player p)
         {
             p.CurrentEffectsList.ProcessEffects(p);
-            if (OnEnterEffects != null)
+            if (OnEnterEffects != null && OnEnterEffects.Length > 0)
             {
-                p.CurrentEffectsList.AddRange(OnEnterEffects);
+                p.AddEffects(OnEnterEffects);
             }
             GameCore.AskForActionAdapter(p);
         }
 
         internal virtual void OnGlance(Player p)
         {
-            if (OnGlanceEffects != null)
+            if (OnGlanceEffects != null && OnGlanceEffects.Length > 0)
             {
-                p.CurrentEffectsList.AddRange(OnGlanceEffects);
+                p.AddEffects(OnGlanceEffects);
             }
             GameCore.AskForActionAdapter(p);
         }

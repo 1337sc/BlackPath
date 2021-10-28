@@ -18,9 +18,11 @@ namespace tgBot
 
         public async Task SerializeTo(FileStream fs)
         {
-            foreach (var prop in from prop in GetType().GetProperties()
-                                 where CheckAttributes(prop)
-                                 select prop)
+            var propsList = from prop in GetType().GetProperties(
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                            where CheckAttributes(prop)
+                            select prop;
+            foreach (var prop in propsList)
             {
                 //await Logger.Log("Serializing: " + prop.Name);
                 if (prop.PropertyType.IsArray && prop.PropertyType != typeof(string))
@@ -37,8 +39,7 @@ namespace tgBot
                 }
                 else
                 {
-                    object serializedValue = prop.PropertyType.IsEnum
-                        ? (int)prop.GetValue(this) : prop.GetValue(this);
+                    object serializedValue = prop.GetValue(this);
                     await GameCore.SerializeValueOfType(prop.PropertyType.IsEnum
                         ? typeof(int) : prop.PropertyType, fs, serializedValue);
                 }
@@ -48,9 +49,11 @@ namespace tgBot
 
         public async Task DeserializeFrom(FileStream fs)
         {
-            foreach (var prop in from prop in GetType().GetProperties()
-                                 where CheckAttributes(prop)
-                                 select prop)
+            var propsList = from prop in GetType().GetProperties(
+                   BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                            where CheckAttributes(prop)
+                            select prop;
+            foreach (var prop in propsList)
             {
                 //await Logger.Log("Deserializing: " + prop.Name);
                 if (prop.PropertyType.IsArray && prop.PropertyType != typeof(string))
@@ -138,6 +141,11 @@ namespace tgBot
                         ?.GetArrayMemberToSetAfterDeserialized(), indices);
                 }
             );
+        }
+
+        private void Test(PropertyInfo prop, object propInstance)
+        {
+            ((Array)prop.GetValue(this)).SetValue(new EffectUtils.Effect(), 0);
         }
 
         /// <summary>

@@ -8,6 +8,7 @@ namespace tgBot.EffectUtils
 {
     public partial class Effect : ISerializable
     {
+        [DoNotSerialize]
         bool ISerializable.IsDifferentForArrays { get; } = false;
 
         private static readonly Dictionary<string, ProgramParams> effectProgramParamsDictionary =
@@ -34,9 +35,7 @@ namespace tgBot.EffectUtils
             };
 
         public string Name { get; set; }
-        [DoNotSerialize]
         public string Type { get; set; }
-        [DoNotSerialize]
         public bool IsManual { get; set; }
 
         /// <summary>
@@ -48,14 +47,13 @@ namespace tgBot.EffectUtils
         /// DialogQuality: random or disabled - if random, the player answers not always the thing he
         ///    wanted to, if disabled, the player can`t speak and trade<br/>
         /// </summary>
-        [DoNotSerialize]
         public string EffectProgram { get; set; }
-        [DoNotSerialize]
         public bool IsDeadly { get; set; } //true, false - if false, the effect can`t kill the player even if HP is 0, but it will still reduce health if HP > 0
-        [DoNotSerialize]
         public string DurationType { get; set; } //a number or "random"
 
         private int duration;
+        private bool isFlaggedForDeletion;
+
         [DoNotSerialize]
         public int Duration
         {
@@ -73,21 +71,26 @@ namespace tgBot.EffectUtils
                     {
                         Logger.Log("Could not parse duration: " + ex.Message).Wait();
                     }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(ex.Message).Wait();
+                    }
                 }
                 return duration;
             }
             private set
             {
                 duration = value;
+
+                if (duration <= 0)
+                {
+                    isFlaggedForDeletion = true;
+                }
             }
         }
 
         public void ProcessEffect(Player p)
         {
-            if (Duration <= 0)
-            {
-                p.CurrentEffectsList.Remove(this);
-            }
             foreach (var part in EffectProgram.Replace(" ", string.Empty).Split(';'))
             {
                 try
@@ -101,6 +104,10 @@ namespace tgBot.EffectUtils
                 }
             }
             Duration--;
+            if (isFlaggedForDeletion)
+            {
+                p.RemoveEffects(new Effect[] { this });
+            }
         }
 
         private void ProcessEffectPart(string part, Player p)

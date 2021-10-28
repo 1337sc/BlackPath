@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading.Tasks;
 using tgBot.Cells;
 using tgBot.EffectUtils;
@@ -16,6 +17,7 @@ namespace tgBot
 
     public sealed class Player : ISerializable
     {
+        [DoNotSerialize]
         bool ISerializable.IsDifferentForArrays { get; } = false;
 
         [DoNotSerialize]
@@ -59,27 +61,22 @@ namespace tgBot
         /// List of all player's effects (mod support). Isn't serialized.
         /// </summary>
         [DoNotSerialize]
-        public List<Effect> EffectsList { get; } = new List<Effect>(); 
+        public List<Effect> EffectsList { get; } = new List<Effect>();
         /// <summary>
         /// List of the effects applied to the player (for usage). Isn't serialized.
         /// </summary>
         [DoNotSerialize]
-        public List<Effect> CurrentEffectsList { get; private set; } = new List<Effect>();
-        
+        public List<Effect> CurrentEffectsList
+        {
+            get => new(CurrentEffects);
+            private set => CurrentEffects = value.ToArray();
+        }
+
         /// <summary>
         /// Array of the effects applied to the player (for serialization)
         /// </summary>
-        private Effect[] CurrentEffects
-        {
-            get => CurrentEffectsList.ToArray();
-            set
-            {
-                foreach (var item in value)
-                {
-                    CurrentEffectsList.Add(item);
-                }
-            } 
-        }
+        private Effect[] CurrentEffects { get; set; }
+
         private readonly Cell playerCell;
         //TODO: Items and their list
         //public List<Item> ItemsList { get; set; }
@@ -89,9 +86,10 @@ namespace tgBot
         /// </summary>
         public Player()
         {
+            CurrentEffectsList = new List<Effect>();
         }
 
-        public Player(long id)
+        public Player(long id) : this()
         {
             Id = id;
             Money = 0;
@@ -215,6 +213,20 @@ namespace tgBot
                 return false;
             }
             return true;
+        }
+
+        public void AddEffects(IEnumerable<Effect> e)
+        {
+            var list = CurrentEffectsList;
+            list.AddRange(e);
+            CurrentEffectsList = list;
+        }
+
+        public void RemoveEffects(IEnumerable<Effect> e)
+        {
+            var list = CurrentEffectsList;
+            list.RemoveAll(x => e.Contains(x));
+            CurrentEffectsList = list;
         }
 
         public Bitmap DrawField()
