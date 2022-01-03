@@ -320,9 +320,5 @@ namespace tgBot
             }
             return (-1, -1);
         }
-
-        void ISerializable.OnSerialized() { }
-
-        void ISerializable.OnDeserialized() { }
     }
 }

@@ -4,7 +4,6 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Linq;
 using tgBot.Game;
-using System.Collections.Generic;
 
 namespace tgBot
 {
@@ -13,8 +12,8 @@ namespace tgBot
         protected bool IsDifferentForArrays { get; }
         protected virtual ISerializable GetArrayMemberToSetAfterDeserialized() =>
             IsDifferentForArrays ? throw new NotImplementedException() : this;
-        protected abstract void OnSerialized();
-        protected abstract void OnDeserialized();
+        protected virtual void OnSerialized() { }
+        protected virtual void OnDeserialized() { }
 
         public async Task SerializeTo(FileStream fs)
         {

@@ -230,10 +230,6 @@ namespace tgBot.Cells
             return Color.FromArgb(int.Parse(hexFormat.Substring(0, 2), NumberStyles.HexNumber), int.Parse(hexFormat.Substring(2, 2), NumberStyles.HexNumber), int.Parse(hexFormat.Substring(4, 2), NumberStyles.HexNumber));
         }
 
-        void ISerializable.OnSerialized() { }
-
-        void ISerializable.OnDeserialized() { }
-
         ISerializable ISerializable.GetArrayMemberToSetAfterDeserialized()
         {
             return CreateCell(Type, Name, Colour, Figure, FigureColour, Fill, HasDialogue, OnEnterEffects, OnGlanceEffects, Desc);

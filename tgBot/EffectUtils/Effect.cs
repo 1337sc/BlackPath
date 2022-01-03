@@ -214,9 +214,5 @@ namespace tgBot.EffectUtils
             if (walkDistValue <= 0 || walkDistValue > p.Field.GetLength(0)) { }
             p.WalkDist = walkDistValue;
         }
-
-        void ISerializable.OnSerialized() { }
-
-        void ISerializable.OnDeserialized() { }
     }
 }
