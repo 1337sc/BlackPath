@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using tgBot.Cells;
@@ -238,8 +239,15 @@ namespace tgBot.Game
         {
             await SetPlayerEffects(p, GetProperResourcesReader("effects", p));
             await SetPlayerCells(p, GetProperResourcesReader("cells", p));
+            await SetPlayerItems(p, GetProperResourcesReader("items", p));
         }
 
+        /// <summary>
+        /// Sets player effects. Should be called first when deserializing a player
+        /// </summary>
+        /// <param name="p">Player</param>
+        /// <param name="reader">Effects file reader</param>
+        /// <returns></returns>
         private static async Task SetPlayerEffects(Player p, StreamReader reader)
         {
             using (reader)
@@ -274,6 +282,50 @@ namespace tgBot.Game
             }
         }
 
+        /// <summary>
+        /// Sets player items. Should be called after <see cref="SetPlayerEffects"/>
+        /// </summary>
+        /// <param name="p">Player</param>
+        /// <param name="reader">Items file reader</param>
+        /// <returns></returns>
+        private static async Task SetPlayerItems(Player p, StreamReader reader)
+        {
+            using (reader)
+            {
+                using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
+                var givenEffects = new List<Effect>();
+                try
+                {
+                    csvReader.Read();
+                    csvReader.ReadHeader();
+                    while (csvReader.Read())
+                    {
+                        string effectField = csvReader.GetField("Effect");
+                        givenEffects = p.EffectsList.FindAll(e => e.Name == effectField);
+                        Item item = new(
+                            name: csvReader.GetField("Name"),
+                            desc: csvReader.GetField("Desc"),
+                            symbol: Regex.Unescape(csvReader.GetField("Symbol")),
+                            givenEffects: givenEffects);
+
+                        p.ItemsList.Add(item);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await Logger.Log($"Could not read items: {ex.Message + ex.StackTrace}");
+                    await CheckAndSendAsync(p.Id,
+                        "A problem has occured during the reading of your modification pack(s). Try setting it to default.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets player cells. Should be called only after <see cref="SetPlayerEffects"/>
+        /// </summary>
+        /// <param name="p">Player</param>
+        /// <param name="reader">Cells file reader</param>
+        /// <returns></returns>
         private static async Task SetPlayerCells(Player p, StreamReader reader)
         {
             using (reader)
@@ -292,11 +344,11 @@ namespace tgBot.Game
                         string effectField = csvReader.GetField("Effect");
                         enterCellEffects = p.EffectsList.FindAll(x =>
                         {
-                            return effectField.Contains("e_" + x.Name);
+                            return effectField == "e_" + x.Name;
                         });
                         glanceCellEffects = p.EffectsList.FindAll(x =>
                         {
-                            return effectField.Contains("g_" + x.Name);
+                            return effectField == "g_" + x.Name;
                         });
 
                         Cell newCell = Cell.CreateCell(
@@ -313,7 +365,7 @@ namespace tgBot.Game
 
                             hasDialogue: csvReader.GetField<bool>("Dialogue"),
                             enterEffects: enterCellEffects.ToArray(),
-                            glanceEffects: glanceCellEffects.ToArray(), 
+                            glanceEffects: glanceCellEffects.ToArray(),
                             desc: csvReader.GetField("Desc")
                         );
                         if (newCell.Type != Cell.CellTypes.ErrType)

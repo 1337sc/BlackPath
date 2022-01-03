@@ -55,13 +55,22 @@ namespace tgBot
                                                 //on the field
         [DoNotSerialize]
         public DateTime TimeStamp { get; set; } //to delete inactive users
+
         [DoNotSerialize]
         public List<Cell> CellsList { get; } = new List<Cell>(); //list of a player's cells (mod support)
+
         /// <summary>
         /// List of all player's effects (mod support). Isn't serialized.
         /// </summary>
         [DoNotSerialize]
         public List<Effect> EffectsList { get; } = new List<Effect>();
+
+        /// <summary>
+        /// List of all player's items (mod support). Isn't serialized
+        /// </summary>
+        [DoNotSerialize]
+        public List<Item> ItemsList { get; } = new List<Item>();
+
         /// <summary>
         /// List of the effects applied to the player (for usage). Isn't serialized.
         /// </summary>
@@ -73,13 +82,26 @@ namespace tgBot
         }
 
         /// <summary>
+        /// List of the items the player has (for usage). Isn't serialized.
+        /// </summary>
+        [DoNotSerialize]
+        public List<Item> CurrentItemsList
+        {
+            get => new(CurrentItems);
+            private set => CurrentItems = value.ToArray();
+        }
+
+        /// <summary>
         /// Array of the effects applied to the player (for serialization)
         /// </summary>
         private Effect[] CurrentEffects { get; set; }
 
+        /// <summary>
+        /// Array of the items applied to the player (for serialization)
+        /// </summary>
+        private Item[] CurrentItems { get; set; }
+
         private readonly Cell playerCell;
-        //TODO: Items and their list
-        //public List<Item> ItemsList { get; set; }
 
         /// <summary>
         /// Serialization constructor
@@ -100,6 +122,10 @@ namespace tgBot
             GameCore.GetPlayerResources(this);
             playerCell = CellsList.Find(x => x.Type == Cell.CellTypes.Player).Clone();
             playerCell.Opened = true;
+            foreach (var item in ItemsList)
+            {
+                GameCore.CheckAndSendAsync(Id, item.Name + " " + item.Symbol).Wait();
+            }
         }
         internal void CreateField(int size)
         {
