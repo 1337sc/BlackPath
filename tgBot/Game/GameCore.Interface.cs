@@ -39,6 +39,7 @@ namespace tgBot.Game
         private const string MarkerNewGame = "New game";
         private const string MarkerLoadGame = "Load saved game";
         private const double DiagonalThreshold = 11d / 18d; // a threshold for characters to tell a diagonal direction
+        private const double DiagonalCeiling = 18d / 11d; // a ceiling for characters to tell a diagonal direction
         public static readonly Dictionary<string, string> commands = new Dictionary<string, string>()
         {
             ["hello"] = "Greet the bot :)",
@@ -378,48 +379,7 @@ namespace tgBot.Game
                 case AnswerModes.DirectionAnswer:
                     if (!p.AskedDirection)
                     {
-                        var (X, Y) = p.FindExitPosition();
-                        int deltaX = p.X - X;
-                        int deltaY = p.Y - Y;
-                        //finding the ratio of deltas to decide the direction
-                        double absTanY = Math.Abs(deltaX / (double)deltaY);
-                        double absTanX = Math.Abs(deltaY / (double)deltaX); //the result will be double
-                        await Logger.Log("Honest!");
-                        if (!p.CheckHonesty())
-                        {
-                            await Logger.Log("Dishonest!");
-                            var rnd = new Random();
-                            //messing the values up so they won't tell the truth even accidently
-                            deltaX += rnd.Next(1, p.Field.GetLength(0) - deltaX);
-                            deltaY += rnd.Next(1, p.Field.GetLength(1) - deltaY);
-                        }
-                        string answer;
-                        if (Math.Abs(deltaX) >= Math.Abs(deltaY))
-                        {
-                            if (absTanY > DiagonalThreshold)
-                            {
-                                answer = deltaX > 0
-                                    ? deltaY > 0 ? MarkerDownRight : MarkerDownLeft
-                                    : deltaY > 0 ? MarkerUpRight : MarkerUpLeft;
-                            }
-                            else
-                            {
-                                answer = deltaX > 0 ? MarkerDown : MarkerUp;
-                            }
-                        }
-                        else
-                        {
-                            if (absTanX > DiagonalThreshold)
-                            {
-                                answer = deltaY > 0
-                                    ? deltaX > 0 ? MarkerDownRight : MarkerDownLeft
-                                    : deltaX < 0 ? MarkerUpRight : MarkerUpLeft;
-                            }
-                            else
-                            {
-                                answer = deltaY > 0 ? MarkerDown : MarkerUp;
-                            }
-                        }
+                        string answer = GetDirectionAnswer(p);
                         await CheckAndSendAsync(p.Id, $"The {p.Field[p.X, p.Y].Name} answers: " +
                             $"\"I've heard about a mysterious portal nearby. Go {answer.ToLower()}\"");
                     }
@@ -431,6 +391,54 @@ namespace tgBot.Game
                 default:
                     break;
             }
+        }
+
+        private static string GetDirectionAnswer(Player p)
+        {
+            var (X, Y) = p.FindExitPosition();
+            int deltaX = p.X - X;
+            int deltaY = p.Y - Y;
+
+            //finding the ratio of deltas to decide the direction
+            double absTanY = Math.Abs(deltaX / (double)deltaY);
+            double absTanX = Math.Abs(deltaY / (double)deltaX); //the result will be double
+
+            if (!p.CheckHonesty())
+            {
+                var rnd = new Random();
+                //messing the values up so they won't tell the truth even accidently
+                deltaX += rnd.Next(1, Math.Abs(p.Field.GetLength(0) - deltaX));
+                deltaY += rnd.Next(1, Math.Abs(p.Field.GetLength(1) - deltaY));
+            }
+            string answer;
+            if (Math.Abs(deltaX) >= Math.Abs(deltaY))
+            {
+                if (absTanY > DiagonalThreshold && absTanY < DiagonalCeiling)
+                {
+                    answer = deltaX > 0
+                        ? deltaY > 0 ? MarkerUpLeft : MarkerUpLeft
+                        : deltaY > 0 ? MarkerUpRight : MarkerDownRight;
+                }
+                else
+                {
+                    answer = deltaX > 0 ? MarkerLeft : MarkerRight;
+                }
+            }
+            else
+            {
+                if (absTanX > DiagonalThreshold && absTanX < DiagonalCeiling)
+                {
+                    answer = deltaY > 0
+                        ? deltaX > 0 ? MarkerUpRight : MarkerUpLeft
+                        : deltaX < 0 ? MarkerDownRight : MarkerDownLeft;
+                }
+                else
+                {
+                    answer = deltaY > 0 ? MarkerUp : MarkerDown;
+                }
+            }
+
+            return answer;
         }
 
         static string CheckForCommands(string msg)

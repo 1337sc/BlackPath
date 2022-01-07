@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using tgBot.Cells;
 using tgBot.EffectUtils;
@@ -122,10 +123,6 @@ namespace tgBot
             GameCore.GetPlayerResources(this);
             playerCell = CellsList.Find(x => x.Type == Cell.CellTypes.Player).Clone();
             playerCell.Opened = true;
-            foreach (var item in ItemsList)
-            {
-                GameCore.CheckAndSendAsync(Id, item.Name + " " + item.Symbol).Wait();
-            }
         }
         internal void CreateField(int size)
         {
@@ -329,7 +326,7 @@ namespace tgBot
             //TODO: when the Effects are done, check if the player has the effect that makes everyone honest
             if (Figure == Field[X, Y].Figure) return true;
             var rnd = new Random();
-            return rnd.Next(0, 1) % 2 == 0;
+            return rnd.Next(0, 2) == 1;
         }
         /// <summary>
         /// Finds the position of the first occured Exit
